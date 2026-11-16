@@ -1,0 +1,551 @@
+title,body,labels,assignee,milestone,task_id,module,owner,week,priority,depends_on,estimate_days,type
+"[T01] Repo iskeleti: klasör yapısı, FastAPI app, /health, requirements, .env.example","**Modül:** M1  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** -  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] `uvicorn app.main:app --reload` çalışır, `/health` 200 döner, klasör yapısı plandaki gibi.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M1,type:code,priority:P0",UYE1,Hafta 1 (16-22 Kas),T01,M1,Üye 1 (@Belisozcelik),1,P0,-,1,code
+[T02] Araç CSV şeması ve veri sözlüğü (docs/data-dictionary.md),"**Modül:** M1  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** -  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Tüm kolonlar, birimler, izin verilen değerler (fuel_type, transmission, body_type) yazılı.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M1,type:docs,priority:P0",UYE1,Hafta 1 (16-22 Kas),T02,M1,Üye 1 (@Belisozcelik),1,P0,-,1,docs
+[T03] İlk 10 araç verisi + data/SOURCES.md,"**Modül:** M1  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T02  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] 10 satır, her satırda spec_source_url ve price_checked_at dolu.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M1,type:data,priority:P0",UYE1,Hafta 1 (16-22 Kas),T03,M1,Üye 1 (@Belisozcelik),1,P0,T02,2,data
+[T10] Preference şeması (app/schemas/preference.py) + docs/api-contract.md,"**Modül:** M2  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T01  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Şema main'e merge edildi; sözleşme dokümanında tüm endpoint'lerin girdi/çıktısı var.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:docs,priority:P0",UYE2,Hafta 1 (16-22 Kas),T10,M2,Üye 2 (@fatihoguzkaya),1,P0,T01,1,docs
+[T11] Çok adımlı anket sayfası (survey.html + survey.js),"**Modül:** M2  
+**Tahmini süre:** 3 gün  
+**Bağımlılık:** T10, T43  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Bütçe, kullanım, yıllık km, vites, yakıt, 5 öncelik adım adım girilir; geri/ileri çalışır.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:code,priority:P0",UYE2,Hafta 1 (16-22 Kas),T11,M2,Üye 2 (@fatihoguzkaya),1,P0,"T10, T43",3,code
+"[T20] Sonuç şemaları (RecommendationResult, ConflictReport) + fixture araçlar","**Modül:** M3  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T10  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Şemalar merge edildi; tests/fixtures/sample_vehicles.csv 10 araç.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M3,type:code,priority:P0",UYE3,Hafta 1 (16-22 Kas),T20,M3,Üye 3 (@karya-karya),1,P0,T10,1,code
+"[T21] Sert kısıt filtreleri (bütçe, vites, yakıt, koltuk, kasa)","**Modül:** M3  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T20  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Saf fonksiyon; DB'ye bağlı değil.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M3,type:code,priority:P0",UYE3,Hafta 1 (16-22 Kas),T21,M3,Üye 3 (@karya-karya),1,P0,T20,2,code
+[T30] LLMProvider arayüzü + NoneProvider + GeminiProvider + config,"**Modül:** M4  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T01  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] AI_PROVIDER=none|gemini ile seçilir; anahtar yoksa none'a düşer.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M4,type:code,priority:P0",UYE4,Hafta 1 (16-22 Kas),T30,M4,Üye 4 (@orhancardak),1,P0,T01,2,code
+[T40] Maliyet modülü: yıllık yakıt/elektrik maliyeti,"**Modül:** M5  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T02  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Saf fonksiyon; benzin, dizel, hibrit, elektrik desteklenir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M5,type:code,priority:P0",UYE5,Hafta 1 (16-22 Kas),T40,M5,Üye 5 (@SudeKarakoc1),1,P0,T02,2,code
+[T41] Maliyet testleri (bilinen girdiler),"**Modül:** M5  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T40  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Belgedeki örnek (12.000 km, 5,2 L, 50 TL → 31.200 TL) test olarak var.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M5,type:test,priority:P0",UYE5,Hafta 1 (16-22 Kas),T41,M5,Üye 5 (@SudeKarakoc1),1,P0,T40,1,test
+"[T43] Ortak CSS ve sayfa düzeni (base.css, nav, kart bileşenleri)","**Modül:** M5  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T01  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Tüm sayfalar aynı nav ve stil dosyasını kullanır.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M5,type:code,priority:P0",UYE5,Hafta 1 (16-22 Kas),T43,M5,Üye 5 (@SudeKarakoc1),1,P0,T01,1,code
+"[T54] CI (ruff + pytest), PR/issue şablonları, CODEOWNERS","**Modül:** M6  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T01  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Her PR'da CI koşar; main branch protection açık.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M6,type:code,priority:P0",UYE6,Hafta 1 (16-22 Kas),T54,M6,Üye 6 (@azrashn),1,P0,T01,1,code
+[T57] Veri: 5 araç ekle,"**Modül:** M6  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T02  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] 5 geçerli satır, kaynaklı.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M6,type:data,priority:P1",UYE6,Hafta 1 (16-22 Kas),T57,M6,Üye 6 (@azrashn),1,P1,T02,1,data
+[T58] docs/architecture.md: mimari diyagram ve modül sınırları,"**Modül:** M6  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T10  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Modüllerin hangi şemaya bağlı olduğu gösterilir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M6,type:docs,priority:P0",UYE6,Hafta 1 (16-22 Kas),T58,M6,Üye 6 (@azrashn),1,P0,T10,1,docs
+[T04] SQLAlchemy modelleri + seed scripti (CSV→SQLite) + CSV doğrulama,"**Modül:** M1  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T01, T02  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] `python -m app.db.seed` DB'yi oluşturur; boş kaynak veya geçersiz enum satırı hata verir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M1,type:code,priority:P0",UYE1,Hafta 2 (23-29 Kas),T04,M1,Üye 1 (@Belisozcelik),2,P0,"T01, T02",2,code
+"[T05] Katalog API: GET /api/vehicles (filtreler), GET /api/vehicles/{id}","**Modül:** M1  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T04  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Marka, yakıt, vites, kasa, fiyat aralığı filtreleri çalışır; Swagger'da görünür.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M1,type:code,priority:P0",UYE1,Hafta 2 (23-29 Kas),T05,M1,Üye 1 (@Belisozcelik),2,P0,T04,2,code
+[T12] POST /api/preferences/form,"**Modül:** M2  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T10  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Geçersiz girdide 422 ve anlaşılır hata mesajı döner.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:code,priority:P0",UYE2,Hafta 2 (23-29 Kas),T12,M2,Üye 2 (@fatihoguzkaya),2,P0,T10,1,code
+"[T13] Kural tabanlı metin ayrıştırıcı (TR/EN: bütçe, vites, yakıt, kullanım, öncelik)","**Modül:** M2  
+**Tahmini süre:** 3 gün  
+**Bağımlılık:** T10  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] '1,5 milyon', '1.500.000 TL', 'otomatik', 'şehir içi' gibi ifadeler doğru alanlara düşer.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:code,priority:P0",UYE2,Hafta 2 (23-29 Kas),T13,M2,Üye 2 (@fatihoguzkaya),2,P0,T10,3,code
+[T18] Veri: 5 araç ekle,"**Modül:** M2  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T02  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] 5 geçerli satır, kaynaklı.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:data,priority:P1",UYE2,Hafta 2 (23-29 Kas),T18,M2,Üye 2 (@fatihoguzkaya),2,P1,T02,1,data
+"[T22] Ağırlıklı puanlama: normalizasyon, ağırlıklar, eksik veri, skor bileşenleri","**Modül:** M3  
+**Tahmini süre:** 3 gün  
+**Bağımlılık:** T20  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] 0–100 skor; bileşenler toplamı skoru açıklar; eksik veri paydadan düşer.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M3,type:code,priority:P0",UYE3,Hafta 2 (23-29 Kas),T22,M3,Üye 3 (@karya-karya),2,P0,T20,3,code
+[T25] POST /api/recommendations (ilk 5 sonuç),"**Modül:** M3  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T22, T04  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Anket çıktısıyla çağrılınca 5 sonuç ya da ConflictReport döner.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M3,type:code,priority:P0",UYE3,Hafta 2 (23-29 Kas),T25,M3,Üye 3 (@karya-karya),2,P0,"T22, T04",1,code
+"[T31] NL→Preference çıkarımı: prompt, JSON çıktı, Pydantic doğrulama","**Modül:** M4  
+**Tahmini süre:** 3 gün  
+**Bağımlılık:** T10, T30  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Geçersiz JSON'da 1 tekrar, sonra kural tabanlı ayrıştırıcıya düşer.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M4,type:code,priority:P0",UYE4,Hafta 2 (23-29 Kas),T31,M4,Üye 4 (@orhancardak),2,P0,"T10, T30",3,code
+"[T32] POST /api/preferences/text (AI → kural yedeği, method alanı)","**Modül:** M4  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T31, T13  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Yanıtta method: ai|rule ve eksik alanlar var.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M4,type:code,priority:P0",UYE4,Hafta 2 (23-29 Kas),T32,M4,Üye 4 (@orhancardak),2,P0,"T31, T13",1,code
+[T38] Veri: 5 araç ekle,"**Modül:** M4  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T02  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] 5 geçerli satır, kaynaklı.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M4,type:data,priority:P1",UYE4,Hafta 2 (23-29 Kas),T38,M4,Üye 4 (@orhancardak),2,P1,T02,1,data
+[T42] GET /api/compare?ids=…,"**Modül:** M5  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T05, T40  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] 2–3 araç için özellikler, yıllık maliyet ve farklar döner.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M5,type:code,priority:P0",UYE5,Hafta 2 (23-29 Kas),T42,M5,Üye 5 (@SudeKarakoc1),2,P0,"T05, T40",2,code
+"[T44] Sonuç sayfası (results.html): kartlar, skor çubuğu, güçlü/zayıf yanlar","**Modül:** M5  
+**Tahmini süre:** 3 gün  
+**Bağımlılık:** T20, T43  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Fixture JSON'la geliştirilir, T25 hazır olunca bağlanır.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M5,type:code,priority:P0",UYE5,Hafta 2 (23-29 Kas),T44,M5,Üye 5 (@SudeKarakoc1),2,P0,"T20, T43",3,code
+[T50] POST /api/scenarios: yeniden sıralama + sıra değişimi,"**Modül:** M6  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T20, T40  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Önce stub motorla, T22 bitince gerçek motorla; rank_delta döner.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M6,type:code,priority:P0",UYE6,Hafta 2 (23-29 Kas),T50,M6,Üye 6 (@azrashn),2,P0,"T20, T40",2,code
+"[T51] Scenario Lab UI: km, yakıt fiyatı, ağırlık sürgüleri (debounce)","**Modül:** M6  
+**Tahmini süre:** 3 gün  
+**Bağımlılık:** T50, T43  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Sürgü değişince 300 ms içinde liste ve grafik güncellenir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M6,type:code,priority:P0",UYE6,Hafta 2 (23-29 Kas),T51,M6,Üye 6 (@azrashn),2,P0,"T50, T43",3,code
+[T06] Katalog sayfası (catalog.html + catalog.js),"**Modül:** M1  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T05, T43  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Liste, filtre paneli, araç detayında kaynak ve tarih görünür.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M1,type:code,priority:P1",UYE1,Hafta 3 (30 Kas-6 Ara),T06,M1,Üye 1 (@Belisozcelik),3,P1,"T05, T43",2,code
+[T07] Seed ve katalog API testleri,"**Modül:** M1  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T05  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] pytest ile en az 6 test; filtre kombinasyonları kapsanır.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M1,type:test,priority:P1",UYE1,Hafta 3 (30 Kas-6 Ara),T07,M1,Üye 1 (@Belisozcelik),3,P1,T05,1,test
+[T08] 5 araç ekle + tüm veri PR'larını doğrula (toplam 40),"**Modül:** M1  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T03  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] CSV'de 40 geçerli satır; doğrulama scripti temiz.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M1,type:data,priority:P1",UYE1,Hafta 3 (30 Kas-6 Ara),T08,M1,Üye 1 (@Belisozcelik),3,P1,T03,1,data
+[T14] Eksik alan tespiti + ek soru önerisi,"**Modül:** M2  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T13  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Eksik alan listesi ve TR/EN soru metni döner.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:code,priority:P1",UYE2,Hafta 3 (30 Kas-6 Ara),T14,M2,Üye 2 (@fatihoguzkaya),3,P1,T13,1,code
+"[T15] i18n altyapısı: i18n.js, tr.json, en.json, dil seçici","**Modül:** M2  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T43  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Dil değişince sayfa yenilenmeden metinler değişir; seçim hatırlanır.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:code,priority:P1",UYE2,Hafta 3 (30 Kas-6 Ara),T15,M2,Üye 2 (@fatihoguzkaya),3,P1,T43,2,code
+"[T16] NL test seti (20 TR + 10 EN cümle, beklenen JSON) + ayrıştırıcı testleri","**Modül:** M2  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T13  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] tests/fixtures/nl_samples.json oluştu; parser testleri CI'da koşar.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:test,priority:P1",UYE2,Hafta 3 (30 Kas-6 Ara),T16,M2,Üye 2 (@fatihoguzkaya),3,P1,T13,1,test
+[T23] Güçlü/zayıf yan etiketleri (deterministik),"**Modül:** M3  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T22  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Örn. low_fuel_consumption, small_trunk; eşikler docs/algorithm.md'de.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M3,type:code,priority:P0",UYE3,Hafta 3 (30 Kas-6 Ara),T23,M3,Üye 3 (@karya-karya),3,P0,T22,1,code
+[T24] Çelişki tespiti: engelleyen kısıtlar + hangi gevşetme kaç araç açar,"**Modül:** M3  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T21  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Sonuç yoksa her kısıt için 'kaldırılırsa N araç' bilgisi döner.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M3,type:code,priority:P1",UYE3,Hafta 3 (30 Kas-6 Ara),T24,M3,Üye 3 (@karya-karya),3,P1,T21,2,code
+[T28] Veri: 5 araç ekle,"**Modül:** M3  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T02  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] 5 geçerli satır, kaynaklı.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M3,type:data,priority:P1",UYE3,Hafta 3 (30 Kas-6 Ara),T28,M3,Üye 3 (@karya-karya),3,P1,T02,1,data
+"[T33] Öneri açıklaması (AI + şablon yedeği, TR/EN)","**Modül:** M4  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T20  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] AI kapalıyken şablonla anlamlı açıklama üretilir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M4,type:code,priority:P0",UYE4,Hafta 3 (30 Kas-6 Ara),T33,M4,Üye 4 (@orhancardak),3,P0,T20,2,code
+[T34] Çelişki açıklaması (ConflictReport'tan),"**Modül:** M4  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T20  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Engelleyen kısıtlar ve öneriler kullanıcı diliyle anlatılır.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M4,type:code,priority:P1",UYE4,Hafta 3 (30 Kas-6 Ara),T34,M4,Üye 4 (@orhancardak),3,P1,T20,1,code
+[T35] Uydurma kontrolü + önbellek + timeout,"**Modül:** M4  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T33  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Veride olmayan özellik geçen cümle elenir; aynı istek ikinci kez API'ye gitmez.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M4,type:code,priority:P1",UYE4,Hafta 3 (30 Kas-6 Ara),T35,M4,Üye 4 (@orhancardak),3,P1,T33,2,code
+[T45] Karşılaştırma sayfası (compare.html + Chart.js),"**Modül:** M5  
+**Tahmini süre:** 3 gün  
+**Bağımlılık:** T42  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Farklar vurgulanır; maliyet grafiği var.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M5,type:code,priority:P0",UYE5,Hafta 3 (30 Kas-6 Ara),T45,M5,Üye 5 (@SudeKarakoc1),3,P0,T42,3,code
+[T47] Veri: 5 araç ekle,"**Modül:** M5  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T02  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] 5 geçerli satır, kaynaklı.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M5,type:data,priority:P1",UYE5,Hafta 3 (30 Kas-6 Ara),T47,M5,Üye 5 (@SudeKarakoc1),3,P1,T02,1,data
+[T52] Önce/sonra sıra değişimi görünümü,"**Modül:** M6  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T51  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Yer değiştiren araçlar ok ve renkle gösterilir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M6,type:code,priority:P1",UYE6,Hafta 3 (30 Kas-6 Ara),T52,M6,Üye 6 (@azrashn),3,P1,T51,2,code
+[T53] Başa baş km hesabı (iki araç),"**Modül:** M6  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T40  
+**Öncelik:** P2
+
+### Kabul kriteri
+- [ ] Fiyat farkı / km başına tasarruf; tasarruf yoksa 'kapanmaz' der.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M6,type:code,priority:P2",UYE6,Hafta 3 (30 Kas-6 Ara),T53,M6,Üye 6 (@azrashn),3,P2,T40,1,code
+"[T09] README: kurulum, veri bölümü, TR/EN birleştirme ve son kontrol","**Modül:** M1  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T01  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Temiz makinede README adımlarıyla 10 dakikada çalışır.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M1,type:docs,priority:P0",UYE1,Hafta 4 (7-13 Ara),T09,M1,Üye 1 (@Belisozcelik),4,P0,T01,2,docs
+"[T17] Kullanım kılavuzu docs/user-guide.md (TR/EN, ekran görüntüleri)","**Modül:** M2  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T11  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Her sayfa için 1 ekran görüntüsü ve adımlar.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:docs,priority:P1",UYE2,Hafta 4 (7-13 Ara),T17,M2,Üye 2 (@fatihoguzkaya),4,P1,T11,1,docs
+[T19] README.en.md çevirisi + TR/EN arayüz metinlerinin gözden geçirilmesi,"**Modül:** M2  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T09, T15  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] İki README aynı bölümleri içerir; tr.json/en.json eksik anahtar yok.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M2,type:docs,priority:P1",UYE2,Hafta 4 (7-13 Ara),T19,M2,Üye 2 (@fatihoguzkaya),4,P1,"T09, T15",1,docs
+"[T26] Motor testleri: bütçe, vites, ağırlık duyarlılığı, determinizm","**Modül:** M3  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T22, T24  
+**Öncelik:** P0
+
+### Kabul kriteri
+- [ ] Motor modülünde %70+ coverage.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M3,type:test,priority:P0",UYE3,Hafta 4 (7-13 Ara),T26,M3,Üye 3 (@karya-karya),4,P0,"T22, T24",2,test
+"[T27] docs/algorithm.md: formül, eşikler, örnek hesap","**Modül:** M3  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T22  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Bir aracın skoru elle hesaplanarak gösterilir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M3,type:docs,priority:P1",UYE3,Hafta 4 (7-13 Ara),T27,M3,Üye 3 (@karya-karya),4,P1,T22,1,docs
+"[T36] Ablation deneyi: kural vs AI, scripts/ablation.py","**Modül:** M4  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T16, T31  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Alan bazında doğruluk tablosu üretilir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M4,type:test,priority:P1",UYE4,Hafta 4 (7-13 Ara),T36,M4,Üye 4 (@orhancardak),4,P1,"T16, T31",2,test
+[T37] docs/ai-integration.md + ablation sonuç raporu,"**Modül:** M4  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T36  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Promptlar, doğrulama ve sonuç tablosu belgelenir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M4,type:docs,priority:P1",UYE4,Hafta 4 (7-13 Ara),T37,M4,Üye 4 (@orhancardak),4,P1,T36,1,docs
+[T46] docs/cost-model.md: formüller ve varsayımlar,"**Modül:** M5  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T40  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Hesaba girmeyen giderler açıkça listelenir.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M5,type:docs,priority:P1",UYE5,Hafta 4 (7-13 Ara),T46,M5,Üye 5 (@SudeKarakoc1),4,P1,T40,1,docs
+"[T48] UI cilası: responsive düzen, boş/hata durumları, erişilebilirlik","**Modül:** M5  
+**Tahmini süre:** 1 gün  
+**Bağımlılık:** T44, T45  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Her sayfada yükleniyor, hata ve sonuç yok durumları var; mobil genişlikte bozulmuyor.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M5,type:code,priority:P1",UYE5,Hafta 4 (7-13 Ara),T48,M5,Üye 5 (@SudeKarakoc1),4,P1,"T44, T45",1,code
+[T55] Uçtan uca API testleri + manuel test checklist,"**Modül:** M6  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T25, T50  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Anket→öneri→karşılaştırma→senaryo akışı testte koşar.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M6,type:test,priority:P1",UYE6,Hafta 4 (7-13 Ara),T55,M6,Üye 6 (@azrashn),4,P1,"T25, T50",2,test
+[T56] docs/test-report.md + docs/demo-script.md,"**Modül:** M6  
+**Tahmini süre:** 2 gün  
+**Bağımlılık:** T55  
+**Öncelik:** P1
+
+### Kabul kriteri
+- [ ] Test sonuçları tablo halinde; 3–5 dakikalık demo akışı yazılı.
+- [ ] Testler/CI yeşil
+- [ ] İlgili doküman veya README bölümü güncellendi
+","module:M6,type:docs,priority:P1",UYE6,Hafta 4 (7-13 Ara),T56,M6,Üye 6 (@azrashn),4,P1,T55,2,docs

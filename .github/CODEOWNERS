@@ -1,0 +1,19 @@
+# Her klasördeki PR'lar otomatik olarak sahibinden review ister.
+/app/catalog/        @Belisozcelik
+/app/db/             @Belisozcelik
+/data/               @Belisozcelik
+/app/preferences/    @fatihoguzkaya
+/app/static/i18n/    @fatihoguzkaya
+/app/static/survey.* @fatihoguzkaya
+/app/engine/         @karya-karya
+/app/ai/             @orhancardak
+/scripts/            @orhancardak
+/app/cost/           @SudeKarakoc1
+/app/compare/        @SudeKarakoc1
+/app/static/css/     @SudeKarakoc1
+/app/static/results.* @SudeKarakoc1
+/app/static/compare.* @SudeKarakoc1
+/app/scenarios/      @azrashn
+/app/static/scenario.* @azrashn
+/.github/            @azrashn
+/app/schemas/        @fatihoguzkaya @karya-karya

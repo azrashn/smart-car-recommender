@@ -1,0 +1,53 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Sanal ortamlar / Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Gizli bilgiler / Secrets (API anahtarları ASLA commit edilmez) ---
+.env
+.env.*
+!.env.example
+
+# --- Yerel veritabanı / Local database (seed scriptiyle yeniden üretilir) ---
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# --- Test ve kapsam çıktıları / Test & coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.ruff_cache/
+.mypy_cache/
+
+# --- AI önbelleği / AI response cache ---
+.cache/
+app/ai/.cache/
+
+# --- Editör ve işletim sistemi / Editors & OS ---
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Loglar / Logs ---
+*.log
+logs/
+
+# --- Jupyter (veri keşfi için kullanılırsa) ---
+.ipynb_checkpoints/
