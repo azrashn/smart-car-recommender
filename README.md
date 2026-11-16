@@ -55,7 +55,7 @@ Araç alırken bütçe, yakıt tüketimi, kullanım amacı, iç hacim ve güvenl
 | --- | --- | --- |
 | Araç kataloğu | <!-- M1 --> | <!-- docs/img/catalog.png --> |
 | İhtiyaç analizi | <!-- M2 --> | |
-| Öneri motoru | Sert kısıt filtreleme, 0–100 ağırlıklı puanlama, güçlü/zayıf yan tespiti ve kısıt gevşetme önerileri. | |
+| Öneri motoru | Sert kısıt filtreleme (bütçe, vites, yakıt, koltuk, kasa), 0–100 ağırlıklı puanlama, güçlü/zayıf yan tespiti ve kısıt gevşetme önerileri. `app/engine/filters.py` saf Python fonksiyonları; veritabanı bağımlılığı yoktur. | |
 | AI açıklamaları | <!-- M4 --> | |
 | Karşılaştırma ve maliyet | <!-- M5 --> | |
 | Scenario Lab | <!-- M6 --> | |

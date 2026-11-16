@@ -55,7 +55,7 @@ Buying a car means weighing budget, fuel consumption, usage, space and safety at
 | --- | --- | --- |
 | Vehicle catalog | <!-- M1 --> | |
 | Needs analysis | <!-- M2 --> | |
-| Recommendation engine | Hard constraint filtering, 0–100 weighted scoring, strengths/weaknesses detection, and constraint relaxation suggestions. | |
+| Recommendation engine | Hard constraint filtering (budget, transmission, fuel type, seats, body type), 0–100 weighted scoring, strengths/weaknesses detection, and constraint relaxation suggestions. `app/engine/filters.py` is a pure Python module with no database dependency. | |
 | AI explanations | <!-- M4 --> | |
 | Comparison and cost | <!-- M5 --> | |
 | Scenario Lab | <!-- M6 --> | |
