@@ -1,0 +1,136 @@
+{
+  "recommendation_success": {
+    "status": "success",
+    "total_matches": 4,
+    "recommendations": [
+      {
+        "rank": 1,
+        "vehicle_id": 3,
+        "brand": "Toyota",
+        "model": "Corolla",
+        "variant": "1.8 Hybrid Dream",
+        "year": 2024,
+        "price_try": 1820000,
+        "body_type": "sedan",
+        "fuel_type": "hybrid",
+        "transmission": "automatic",
+        "score": 86.4,
+        "score_breakdown": {
+          "fuel_economy": 92.0,
+          "interior_space": 75.0,
+          "performance": 78.0,
+          "budget_fit": 88.0,
+          "safety": 100.0
+        },
+        "strengths": [
+          "Düşük yakıt tüketimi (4.5 L/100km)",
+          "5 yıldızlı Euro NCAP güvenlik derecesi",
+          "Şehir içi kullanımda yüksek hibrit verimliliği"
+        ],
+        "weaknesses": [
+          "Ortalama bagaj hacmi (471 L)"
+        ],
+        "explanation": "Toyota Corolla Hybrid, düşük yakıt tüketimi ve yüksek güvenlik puanıyla bütçenize ve önceliklerinize en uygun dengeli seçenektir.",
+        "estimated_annual_cost_try": 31500.0
+      },
+      {
+        "rank": 2,
+        "vehicle_id": 5,
+        "brand": "Peugeot",
+        "model": "2008",
+        "variant": "1.2 PureTech Allure",
+        "year": 2024,
+        "price_try": 1750000,
+        "body_type": "suv",
+        "fuel_type": "petrol",
+        "transmission": "automatic",
+        "score": 79.1,
+        "score_breakdown": {
+          "fuel_economy": 76.0,
+          "interior_space": 70.0,
+          "performance": 75.0,
+          "budget_fit": 92.0,
+          "safety": 80.0
+        },
+        "strengths": [
+          "Bütçenizin 250.000 TL altında fiyat avantajı",
+          "Modern SUV gövde tipi ve yüksek sürüş pozisyonu"
+        ],
+        "weaknesses": [
+          "Hibrit modellere göre daha yüksek şehir içi tüketim (5.9 L/100km)"
+        ],
+        "explanation": "Peugeot 2008, SUV konforunu uygun fiyat ve yeterli performansla birleştiren güçlü bir alternatiftir.",
+        "estimated_annual_cost_try": 41300.0
+      },
+      {
+        "rank": 3,
+        "vehicle_id": 8,
+        "brand": "Skoda",
+        "model": "Octavia",
+        "variant": "1.5 TSI Premium",
+        "year": 2024,
+        "price_try": 1980000,
+        "body_type": "sedan",
+        "fuel_type": "petrol",
+        "transmission": "automatic",
+        "score": 77.8,
+        "score_breakdown": {
+          "fuel_economy": 78.0,
+          "interior_space": 95.0,
+          "performance": 85.0,
+          "budget_fit": 60.0,
+          "safety": 100.0
+        },
+        "strengths": [
+          "Sınıfının en geniş bagaj hacmi (600 L)",
+          "150 HP güçlü motor performansı",
+          "5 yıldızlı Euro NCAP güvenlik skoru"
+        ],
+        "weaknesses": [
+          "Belirttiğiniz bütçe sınırına yakın fiyat"
+        ],
+        "explanation": "Skoda Octavia, geniş aile kullanımı ve uzun yol seyahatleri için rakipsiz bir bagaj ve yaşam alanı sunar.",
+        "estimated_annual_cost_try": 37100.0
+      }
+    ],
+    "applied_filters": {
+      "budget_max": 2000000,
+      "transmission": "automatic",
+      "seats_min": 5
+    },
+    "weights_used": {
+      "fuel_economy": 3,
+      "budget_fit": 2,
+      "interior_space": 2,
+      "performance": 1,
+      "safety": 2
+    }
+  },
+  "conflict_example": {
+    "status": "conflict",
+    "has_conflict": true,
+    "reason": "Belirttiğiniz kriterlere (Maks. 1.500.000 TL bütçe, SUV kasa ve Elektrikli motor) uyan hiçbir araç bulunamadı.",
+    "conflicting_constraints": [
+      "budget_max",
+      "body_type",
+      "fuel_type"
+    ],
+    "suggestions": [
+      {
+        "constraint": "budget_max",
+        "current_value": 1500000,
+        "suggested_value": 1790000,
+        "message": "Bütçenizi 1.790.000 TL seviyesine çıkarırsanız elektrikli SUV olarak BYD Atto 3 seçeneği açılacaktır.",
+        "additional_matches_unlocked": 1
+      },
+      {
+        "constraint": "fuel_type",
+        "current_value": "electric",
+        "suggested_value": "petrol",
+        "message": "Yakıt tercihini benzinli olarak esnetirseniz Dacia Duster (1.250.000 TL) bütçenize dahil olacaktır.",
+        "additional_matches_unlocked": 1
+      }
+    ],
+    "explanation": "Piyasa koşullarında 1.500.000 TL altında sıfır elektrikli SUV seçeneği bulunmamaktadır. Bütçenizi esnetebilir ya da benzinli SUV alternatiflerini değerlendirebilirsiniz."
+  }
+}

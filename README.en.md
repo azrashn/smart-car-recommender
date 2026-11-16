@@ -55,7 +55,7 @@ Buying a car means weighing budget, fuel consumption, usage, space and safety at
 | --- | --- | --- |
 | Vehicle catalog | <!-- M1 --> | |
 | Needs analysis | <!-- M2 --> | |
-| Recommendation engine | <!-- M3 --> | |
+| Recommendation engine | Hard constraint filtering, 0–100 weighted scoring, strengths/weaknesses detection, and constraint relaxation suggestions. | |
 | AI explanations | <!-- M4 --> | |
 | Comparison and cost | <!-- M5 --> | |
 | Scenario Lab | <!-- M6 --> | |
