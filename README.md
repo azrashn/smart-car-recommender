@@ -157,6 +157,8 @@ ruff check .
 
 Araç teknik bilgileri üreticilerin resmî sitelerinden derlendi. Her satırda kaynak bağlantısı ve kontrol tarihi bulunur. **Fiyatlar örnektir ve güncel olmayabilir.** Liste: [data/SOURCES.md](data/SOURCES.md)
 
+Kolonlar, birimler ve izin verilen değerler: [docs/data-dictionary.md](docs/data-dictionary.md)
+
 ## Proje yapısı
 
 ```

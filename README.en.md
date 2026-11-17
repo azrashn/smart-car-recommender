@@ -157,6 +157,8 @@ ruff check .
 
 Vehicle specifications were collected from manufacturers' official websites. Each row has a source link and a check date. **Prices are examples and may be outdated.** List: [data/SOURCES.md](data/SOURCES.md)
 
+Columns, units and allowed values: [docs/data-dictionary.md](docs/data-dictionary.md)
+
 ## Project structure
 
 ```
