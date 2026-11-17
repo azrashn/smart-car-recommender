@@ -1,0 +1,630 @@
+# AutoMatch — API Contract
+
+> **Status:** Draft v0.1 — 2026-11-17  
+> **Branch:** `feat/T10-fatih-preference-schema`  
+> **Author:** @fatihoguzkaya (M2)  
+>
+> Sections marked **DRAFT – owner to confirm** contain placeholder schemas
+> whose authoritative definition belongs to another module owner.
+> **Do not implement against DRAFT sections** until the owner approves them.
+
+---
+
+## Table of Contents
+
+1. [Base URL & conventions](#1-base-url--conventions)
+2. [Shared error format](#2-shared-error-format)
+3. [GET /api/vehicles](#3-get-apivehicles)
+4. [GET /api/vehicles/{id}](#4-get-apivehiclesid)
+5. [POST /api/preferences/form](#5-post-apipreferencesform)
+6. [POST /api/preferences/text](#6-post-apipreferencestext)
+7. [POST /api/recommendations](#7-post-apirecommendations)
+8. [GET /api/compare](#8-get-apicompare)
+9. [POST /api/scenarios](#9-post-apiscenarios)
+
+---
+
+## 1. Base URL & conventions
+
+| Item | Value |
+|---|---|
+| Local base URL | `http://127.0.0.1:8000` |
+| Content-Type | `application/json` (all request and response bodies) |
+| Character encoding | UTF-8 |
+| Enum case | All enum values are **lowercase** (e.g. `"petrol"`, `"suv"`) |
+| Currency | Turkish Lira, integer TRY (no decimals) |
+| Empty filter list | An empty array `[]` for multi-value filter fields means **no preference** (all values pass) |
+
+---
+
+## 2. Shared error format
+
+All endpoints return errors in this envelope:
+
+```json
+{
+  "detail": "Human-readable description of the error.",
+  "code": "machine_readable_error_code"
+}
+```
+
+| HTTP status | `code` | Meaning |
+|---|---|---|
+| 422 | `validation_error` | Request body failed Pydantic validation |
+| 404 | `not_found` | Requested resource does not exist |
+| 500 | `internal_error` | Unexpected server error |
+
+Pydantic validation errors include a `loc` array for field-level detail
+(FastAPI default behaviour, wrapped inside `detail`).
+
+---
+
+## 3. GET /api/vehicles
+
+**Owner:** @Belisozcelik (M1)
+
+> [!NOTE]
+> DRAFT – M1 owner to confirm field names, pagination style, and filter params.
+
+Returns the filtered vehicle catalogue.
+
+### Query parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `fuel_type` | string | No | Filter by fuel type (`petrol`, `diesel`, `hybrid`, `electric`) |
+| `body_type` | string | No | Filter by body type (`hatchback`, `sedan`, `suv`, `wagon`, `mpv`) |
+| `transmission` | string | No | Filter by transmission (`manual`, `automatic`) |
+| `max_price` | integer | No | Maximum price in TRY |
+| `limit` | integer | No | Max results to return (default 20) |
+| `offset` | integer | No | Pagination offset (default 0) |
+
+### Response `200 OK` — DRAFT
+
+```json
+{
+  "total": 40,
+  "items": [
+    {
+      "id": 3,
+      "brand": "Toyota",
+      "model": "Corolla",
+      "variant": "1.8 Hybrid Dream",
+      "year": 2024,
+      "body_type": "sedan",
+      "fuel_type": "hybrid",
+      "transmission": "automatic",
+      "consumption_l_100km": 4.5,
+      "consumption_kwh_100km": null,
+      "range_km": null,
+      "power_hp": 140,
+      "seats": 5,
+      "trunk_l": 471,
+      "euro_ncap_stars": 5,
+      "price_try": 1820000,
+      "price_checked_at": "2026-11-16",
+      "spec_source_url": "https://www.toyota.com.tr/modeller/corolla",
+      "price_source_url": "https://www.toyota.com.tr/fiyat-listesi"
+    }
+  ]
+}
+```
+
+---
+
+## 4. GET /api/vehicles/{id}
+
+**Owner:** @Belisozcelik (M1)
+
+> [!NOTE]
+> DRAFT – M1 owner to confirm. Same Vehicle object shape as above, single item.
+
+### Path parameter
+
+| Parameter | Type | Description |
+|---|---|---|
+| `id` | integer | Vehicle ID from the catalogue |
+
+### Response `200 OK` — DRAFT
+
+```json
+{
+  "id": 3,
+  "brand": "Toyota",
+  "model": "Corolla",
+  "variant": "1.8 Hybrid Dream",
+  "year": 2024,
+  "body_type": "sedan",
+  "fuel_type": "hybrid",
+  "transmission": "automatic",
+  "consumption_l_100km": 4.5,
+  "consumption_kwh_100km": null,
+  "range_km": null,
+  "power_hp": 140,
+  "seats": 5,
+  "trunk_l": 471,
+  "euro_ncap_stars": 5,
+  "price_try": 1820000,
+  "price_checked_at": "2026-11-16",
+  "spec_source_url": "https://www.toyota.com.tr/modeller/corolla",
+  "price_source_url": "https://www.toyota.com.tr/fiyat-listesi"
+}
+```
+
+### Response `404 Not Found`
+
+```json
+{
+  "detail": "Vehicle with id=99 not found.",
+  "code": "not_found"
+}
+```
+
+---
+
+## 5. POST /api/preferences/form
+
+**Owner:** @fatihoguzkaya (M2) — **CONFIRMED**
+
+Accepts a fully completed survey form and returns a validated `Preference` object.
+Used by the step-by-step form UI (T11, T12).
+
+### Request body
+
+The body is the `Preference` schema defined in `app/schemas/preference.py`.
+All fields except `budget_max_try` are optional.
+
+| Field | Type | Required | Constraints | Description |
+|---|---|---|---|---|
+| `budget_max_try` | integer | **Yes** | > 0 | Maximum purchase price in TRY |
+| `budget_min_try` | integer | No | > 0, ≤ `budget_max_try` | Minimum purchase price in TRY |
+| `usage_type` | string | No | `city` \| `highway` \| `mixed` \| `family` | Primary driving context |
+| `annual_km` | integer | No | 1 000 – 200 000 | Expected annual mileage (km) |
+| `transmission` | string | No | `manual` \| `automatic` \| `null` | Required transmission; `null` = no preference |
+| `fuel_types` | array[string] | No | subset of `petrol`,`diesel`,`hybrid`,`electric` | Empty = no preference |
+| `body_types` | array[string] | No | subset of `hatchback`,`sedan`,`suv`,`wagon`,`mpv` | Empty = no preference |
+| `min_seats` | integer | No | 2 – 9 | Minimum seat count |
+| `priorities` | object | No | see below | Per-criterion importance weights |
+| `priorities.fuel_economy` | string | No | `low`\|`medium`\|`high` | Default `medium` |
+| `priorities.interior_space` | string | No | `low`\|`medium`\|`high` | Default `medium` |
+| `priorities.performance` | string | No | `low`\|`medium`\|`high` | Default `medium` |
+| `priorities.budget_fit` | string | No | `low`\|`medium`\|`high` | Default `medium` |
+| `priorities.safety` | string | No | `low`\|`medium`\|`high` | Default `medium` |
+| `language` | string | No | `tr` \| `en` | Default `tr` |
+
+Unknown extra fields are **rejected** (`extra="forbid"`).
+
+### Request example
+
+```json
+{
+  "budget_max_try": 2000000,
+  "budget_min_try": 1500000,
+  "usage_type": "family",
+  "annual_km": 25000,
+  "transmission": "automatic",
+  "fuel_types": ["petrol", "hybrid"],
+  "body_types": ["suv"],
+  "min_seats": 5,
+  "priorities": {
+    "fuel_economy": "medium",
+    "interior_space": "high",
+    "performance": "low",
+    "budget_fit": "medium",
+    "safety": "high"
+  },
+  "language": "tr"
+}
+```
+
+### Response `200 OK`
+
+The endpoint echoes back the validated and normalised `Preference` object.
+
+```json
+{
+  "budget_max_try": 2000000,
+  "budget_min_try": 1500000,
+  "usage_type": "family",
+  "annual_km": 25000,
+  "transmission": "automatic",
+  "fuel_types": ["petrol", "hybrid"],
+  "body_types": ["suv"],
+  "min_seats": 5,
+  "priorities": {
+    "fuel_economy": "medium",
+    "interior_space": "high",
+    "performance": "low",
+    "budget_fit": "medium",
+    "safety": "high"
+  },
+  "language": "tr"
+}
+```
+
+### Response `422 Unprocessable Entity`
+
+Returned when `budget_min_try > budget_max_try`, a value is out of range,
+or an unknown field is present:
+
+```json
+{
+  "detail": "budget_min_try (1800000) must be <= budget_max_try (1500000)",
+  "code": "validation_error"
+}
+```
+
+---
+
+## 6. POST /api/preferences/text
+
+**Owner:** @fatihoguzkaya (M2) — **CONFIRMED**
+
+Accepts a free-text description in Turkish or English and extracts a `Preference`
+object from it using a rule-based parser (T13) or the AI layer (T31).
+Fields that cannot be inferred are listed in `missing_fields`.
+
+### Request body
+
+```json
+{
+  "text": "Şehir içinde kullanacağım, otomatik vites olsun, az yaksın, bütçem 1,5 milyon TL.",
+  "language": "tr"
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `text` | string | **Yes** | Free-text user input (1 – 2 000 characters) |
+| `language` | string | No | `tr` \| `en`, default `tr`. Hint for the parser. |
+
+### Response `200 OK` — `TextExtractionResult`
+
+```json
+{
+  "preference": {
+    "budget_max_try": 1500000,
+    "budget_min_try": null,
+    "usage_type": "city",
+    "annual_km": null,
+    "transmission": "automatic",
+    "fuel_types": [],
+    "body_types": [],
+    "min_seats": null,
+    "priorities": {
+      "fuel_economy": "high",
+      "interior_space": "medium",
+      "performance": "medium",
+      "budget_fit": "medium",
+      "safety": "medium"
+    },
+    "language": "tr"
+  },
+  "missing_fields": ["annual_km", "body_types"],
+  "method": "rule"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `preference` | Preference | Extracted preference (defaults fill undetected fields) |
+| `missing_fields` | array[string] | Preference field names that could not be inferred; frontend should prompt for these |
+| `method` | string | `"ai"` or `"rule"` — which extractor was used |
+
+### Response `422 Unprocessable Entity`
+
+```json
+{
+  "detail": "text field is required and must not be empty.",
+  "code": "validation_error"
+}
+```
+
+---
+
+## 7. POST /api/recommendations
+
+**Owner:** @karya-karya (M3)
+
+> [!NOTE]
+> DRAFT – M3 owner (@karya-karya) to confirm. Schema source:
+> `app/schemas/recommendation.py` (already committed on main).
+
+Applies hard-constraint filters to the catalogue, scores passing vehicles
+with weighted criteria, and returns the top 5 results — or a conflict report
+if no vehicle passes all constraints.
+
+### Request body
+
+A `Preference` object (same schema as §5). The engine reads:
+- **Hard filters:** `budget_max_try`, `transmission`, `fuel_types`, `body_types`, `min_seats`
+- **Scoring weights:** `priorities` (via `ScoringPriorities.weights()`)
+- **Cost estimate:** `annual_km` (passed to M5)
+
+```json
+{
+  "budget_max_try": 2000000,
+  "transmission": "automatic",
+  "fuel_types": ["petrol", "hybrid"],
+  "body_types": ["suv"],
+  "min_seats": 5,
+  "priorities": {
+    "fuel_economy": "high",
+    "interior_space": "high",
+    "performance": "low",
+    "budget_fit": "medium",
+    "safety": "high"
+  },
+  "annual_km": 20000,
+  "language": "tr"
+}
+```
+
+### Response `200 OK` — `RecommendationResult` — DRAFT
+
+```json
+{
+  "status": "success",
+  "total_matches": 4,
+  "recommendations": [
+    {
+      "rank": 1,
+      "vehicle_id": 3,
+      "brand": "Toyota",
+      "model": "Corolla",
+      "variant": "1.8 Hybrid Dream",
+      "year": 2024,
+      "price_try": 1820000,
+      "body_type": "sedan",
+      "fuel_type": "hybrid",
+      "transmission": "automatic",
+      "score": 86.4,
+      "score_breakdown": {
+        "fuel_economy": 92.0,
+        "interior_space": 75.0,
+        "performance": 78.0,
+        "budget_fit": 88.0,
+        "safety": 100.0
+      },
+      "strengths": ["Düşük yakıt tüketimi (4.5 L/100km)", "5 yıldızlı Euro NCAP"],
+      "weaknesses": ["Ortalama bagaj hacmi (471 L)"],
+      "explanation": "Toyota Corolla Hybrid, önceliklerinize en uygun dengeli seçenektir.",
+      "estimated_annual_cost_try": 31500.0
+    }
+  ],
+  "applied_filters": {
+    "budget_max": 2000000,
+    "transmission": "automatic",
+    "seats_min": 5
+  },
+  "weights_used": {
+    "fuel_economy": 3,
+    "interior_space": 3,
+    "performance": 1,
+    "budget_fit": 2,
+    "safety": 3
+  }
+}
+```
+
+### Response `200 OK` — `ConflictReport` (no matches) — DRAFT
+
+```json
+{
+  "status": "conflict",
+  "has_conflict": true,
+  "reason": "Belirttiğiniz kriterlere uyan hiçbir araç bulunamadı.",
+  "conflicting_constraints": ["budget_max", "fuel_type"],
+  "suggestions": [
+    {
+      "constraint": "budget_max",
+      "current_value": 1500000,
+      "suggested_value": 1790000,
+      "message": "Bütçenizi 1.790.000 TL'ye çıkarırsanız BYD Atto 3 açılır.",
+      "additional_matches_unlocked": 1
+    }
+  ],
+  "explanation": "Piyasada 1.500.000 TL altında elektrikli SUV bulunmamaktadır."
+}
+```
+
+---
+
+## 8. GET /api/compare
+
+**Owner:** @SudeKarakoc1 (M5)
+
+> [!NOTE]
+> DRAFT – M5 owner (@SudeKarakoc1) to confirm fields and cost calculation details.
+
+Returns a side-by-side comparison of 2–3 vehicles with estimated annual costs.
+
+### Query parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `ids` | string | **Yes** | Comma-separated vehicle IDs, e.g. `1,2,3` (2–3 IDs) |
+| `annual_km` | integer | No | Used for fuel cost estimate; default 15 000 |
+| `fuel_price_try` | number | No | Fuel price per litre/kWh in TRY; default from config |
+
+### Response `200 OK` — DRAFT
+
+```json
+{
+  "vehicles": [
+    {
+      "id": 3,
+      "brand": "Toyota",
+      "model": "Corolla",
+      "variant": "1.8 Hybrid Dream",
+      "price_try": 1820000,
+      "fuel_type": "hybrid",
+      "transmission": "automatic",
+      "consumption_l_100km": 4.5,
+      "power_hp": 140,
+      "seats": 5,
+      "trunk_l": 471,
+      "euro_ncap_stars": 5,
+      "estimated_annual_cost_try": 31500.0
+    },
+    {
+      "id": 5,
+      "brand": "Peugeot",
+      "model": "2008",
+      "variant": "1.2 PureTech Allure",
+      "price_try": 1750000,
+      "fuel_type": "petrol",
+      "transmission": "automatic",
+      "consumption_l_100km": 5.9,
+      "power_hp": 130,
+      "seats": 5,
+      "trunk_l": 434,
+      "euro_ncap_stars": 4,
+      "estimated_annual_cost_try": 41300.0
+    }
+  ],
+  "annual_km_used": 15000,
+  "fuel_price_try_used": 47.0
+}
+```
+
+### Response `422 Unprocessable Entity`
+
+```json
+{
+  "detail": "ids must contain 2 to 3 vehicle IDs.",
+  "code": "validation_error"
+}
+```
+
+---
+
+## 9. POST /api/scenarios
+
+**Owner:** @azrashn (M6)
+
+> [!NOTE]
+> DRAFT – M6 owner (@azrashn) to confirm. The request body extends `Preference`
+> with scenario-specific overrides; the response mirrors `RecommendationResult`.
+
+Reruns the recommendation engine with overridden `annual_km`, fuel price,
+and/or priority weights — without re-submitting the full preference form.
+Designed for Scenario Lab live sliders (T41, T42).
+
+### Request body — DRAFT
+
+```json
+{
+  "preference": {
+    "budget_max_try": 2000000,
+    "transmission": "automatic",
+    "fuel_types": ["petrol", "hybrid"],
+    "priorities": {
+      "fuel_economy": "high",
+      "interior_space": "medium",
+      "performance": "low",
+      "budget_fit": "high",
+      "safety": "medium"
+    },
+    "annual_km": 20000,
+    "language": "tr"
+  },
+  "overrides": {
+    "annual_km": 40000,
+    "fuel_price_try": 55.0,
+    "priorities": {
+      "fuel_economy": "high",
+      "budget_fit": "low"
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `preference` | Preference | Base preference (from form or text endpoint) |
+| `overrides.annual_km` | integer | Override annual mileage for cost recalculation |
+| `overrides.fuel_price_try` | number | Override fuel price (TRY/litre or TRY/kWh) |
+| `overrides.priorities` | object | Partial priority override; unset keys keep base values |
+
+### Response `200 OK` — `RecommendationResult` — DRAFT
+
+Same shape as §7 `RecommendationResult`. Rankings may differ from the
+base recommendation due to the applied overrides.
+
+```json
+{
+  "status": "success",
+  "total_matches": 4,
+  "recommendations": [
+    {
+      "rank": 1,
+      "vehicle_id": 3,
+      "brand": "Toyota",
+      "model": "Corolla",
+      "variant": "1.8 Hybrid Dream",
+      "score": 91.2,
+      "score_breakdown": {
+        "fuel_economy": 95.0,
+        "interior_space": 75.0,
+        "performance": 78.0,
+        "budget_fit": 88.0,
+        "safety": 100.0
+      },
+      "strengths": ["Yüksek yıllık km'de hibrit avantajı"],
+      "weaknesses": [],
+      "explanation": null,
+      "estimated_annual_cost_try": 63000.0
+    }
+  ],
+  "applied_filters": {
+    "budget_max": 2000000,
+    "transmission": "automatic"
+  },
+  "weights_used": {
+    "fuel_economy": 3,
+    "interior_space": 2,
+    "performance": 1,
+    "budget_fit": 1,
+    "safety": 2
+  }
+}
+```
+
+---
+
+## Appendix A — Priority weight mapping
+
+| `Priority` value | Numeric weight (M3) |
+|---|---|
+| `low` | 1 |
+| `medium` | 2 |
+| `high` | 3 |
+
+Helper: `app.schemas.preference.priority_weight(Priority.high)` → `3`
+
+## Appendix B — Enum reference
+
+| Field | Allowed values |
+|---|---|
+| `fuel_type` / `fuel_types` | `petrol`, `diesel`, `hybrid`, `electric` |
+| `body_type` / `body_types` | `hatchback`, `sedan`, `suv`, `wagon`, `mpv` |
+| `transmission` | `manual`, `automatic` |
+| `usage_type` | `city`, `highway`, `mixed`, `family` |
+| `priorities.*` | `low`, `medium`, `high` |
+| `language` | `tr`, `en` |
+| `method` (TextExtractionResult) | `ai`, `rule` |
+
+> [!IMPORTANT]
+> Enum values in the table above are authoritative and match `data/vehicles.csv`
+> column values exactly. Any change must be coordinated across M1, M2, M3, and M6.
+
+## Appendix C — Open questions for the team
+
+| # | Question | Affects | Owner |
+|---|---|---|---|
+| 1 | `transmission` in Preference is a **single value** (`manual`\|`automatic`\|`null`), matching `filter_by_transmission` in `filters.py` which takes a single string. If M3 needs to accept *multiple* transmissions (e.g. `["manual","automatic"]`), the field must change to `List[Literal[...]]`. | M2, M3 | @karya-karya, @fatihoguzkaya |
+| 2 | Should `POST /api/recommendations` accept a raw `Preference` body, or a session/token that references a previously posted preference? | M2, M3, M5 | @karya-karya |
+| 3 | `POST /api/scenarios` overrides only partial priorities. Should unset priority keys fall back to the base preference, or always to `medium`? | M2, M6 | @azrashn, @fatihoguzkaya |
+| 4 | `GET /api/compare` takes `ids` as a comma-separated query string. Confirm 2–3 vehicle limit and whether a 4th vehicle should return 422 or silently truncate. | M5 | @SudeKarakoc1 |
+| 5 | AI extraction (`method: "ai"`) requires `GEMINI_API_KEY`. Should the endpoint fall back to `"rule"` silently, or return a `503` with `{"code": "ai_unavailable"}`? | M2, M4 | @orhancardak, @fatihoguzkaya |
