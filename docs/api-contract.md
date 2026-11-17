@@ -303,9 +303,10 @@ FastAPI default format (see §2):
 
 **Owner:** @fatihoguzkaya (M2) — **CONFIRMED**
 
-Accepts a free-text description in Turkish or English and extracts a `Preference`
+Accepts a free-text description in Turkish or English and extracts a `PreferenceDraft`
 object from it using a rule-based parser (T13) or the AI layer (T31).
-Fields that cannot be inferred are listed in `missing_fields`.
+Fields that cannot be inferred from the text (including `budget_max_try` when omitted by the user)
+are listed in `missing_fields`.
 
 > [!NOTE]
 > **Graceful Degradation (NFR-02):**  
@@ -317,7 +318,7 @@ Fields that cannot be inferred are listed in `missing_fields`.
 
 ```json
 {
-  "text": "Şehir içinde kullanacağım, otomatik vites olsun, az yaksın, bütçem 1,5 milyon TL.",
+  "text": "Şehir içinde kullanacağım, otomatik vites, az yakan bir SUV arıyorum.",
   "language": "tr"
 }
 ```
@@ -329,16 +330,20 @@ Fields that cannot be inferred are listed in `missing_fields`.
 
 ### Response `200 OK` — `TextExtractionResult`
 
+The returned `preference` object uses the `PreferenceDraft` schema (all fields optional).
+When mandatory fields (such as `budget_max_try`) are absent from the free text, they are set to `null`
+and listed in `missing_fields`.
+
 ```json
 {
   "preference": {
-    "budget_max_try": 1500000,
+    "budget_max_try": null,
     "budget_min_try": null,
     "usage_type": "city",
     "annual_km": null,
     "transmission": "automatic",
     "fuel_types": [],
-    "body_types": [],
+    "body_types": ["suv"],
     "min_seats": null,
     "priorities": {
       "fuel_economy": "high",
@@ -349,16 +354,23 @@ Fields that cannot be inferred are listed in `missing_fields`.
     },
     "language": "tr"
   },
-  "missing_fields": ["annual_km", "body_types"],
+  "missing_fields": ["budget_max_try", "annual_km"],
   "method": "rule"
 }
 ```
 
 | Field | Type | Description |
 |---|---|---|
-| `preference` | Preference | Extracted preference (defaults fill undetected fields) |
-| `missing_fields` | array[string] | Preference field names that could not be inferred; frontend should prompt for these |
+| `preference` | PreferenceDraft | Extracted preference draft (all fields optional; defaults fill undetected priorities/language) |
+| `missing_fields` | array[string] | Preference field names that could not be inferred from the text. The frontend prompts the user for these (FR-05) before submitting the finalized `Preference` to `POST /api/recommendations`. |
 | `method` | string | `"ai"` or `"rule"` — which extractor was used |
+
+> [!TIP]
+> **Workflow (FR-05):**  
+> 1. User submits free text to `POST /api/preferences/text`.
+> 2. Backend returns `TextExtractionResult` containing a `PreferenceDraft` and `missing_fields`.
+> 3. If `budget_max_try` (or any other required field) is in `missing_fields`, the frontend asks the user to fill it in.
+> 4. Once `budget_max_try` is supplied, the draft is converted to a complete `Preference` and submitted to `POST /api/recommendations`.
 
 ### Response `422 Unprocessable Entity`
 
@@ -697,6 +709,7 @@ Helper: `app.schemas.preference.priority_weight(Priority.high)` → `3`
 |---|---|---|
 | R1 | `POST /api/recommendations` request body | **Direct Preference body.** Stateless; no session or token is used. |
 | R2 | `/api/preferences/text` AI fallback | **Silent fallback to rule-based parser (NFR-02).** Returns `method: "rule"` with HTTP 200 when AI is unconfigured or fails. No 503 error. |
+| R3 | `/api/preferences/text` partial extraction | **PreferenceDraft model.** Returns `PreferenceDraft` where all fields (including `budget_max_try`) are optional. Missing fields are reported in `missing_fields`. Frontend prompts the user before converting to `Preference` and calling `POST /api/recommendations`. |
 
 ### Open questions
 
