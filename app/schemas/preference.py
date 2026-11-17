@@ -136,6 +136,7 @@ class ScoringPriorities(BaseModel):
 # ---------------------------------------------------------------------------
 
 _PositiveInt = Annotated[int, Field(gt=0)]
+_NonNegativeInt = Annotated[int, Field(ge=0)]
 _AnnualKm = Annotated[int, Field(ge=1_000, le=200_000)]
 _MinSeats = Annotated[int, Field(ge=2, le=9)]
 
@@ -168,10 +169,10 @@ class Preference(BaseModel):
         ...,
         description="Maximum purchase price in Turkish Lira (TRY). Required.",
     )
-    budget_min_try: _PositiveInt | None = Field(
+    budget_min_try: _NonNegativeInt | None = Field(
         default=None,
         description=(
-            "Minimum purchase price in TRY (optional). "
+            "Minimum purchase price in TRY (optional, >= 0). "
             "If set, must be less than or equal to budget_max_try."
         ),
     )

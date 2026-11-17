@@ -123,6 +123,10 @@ class TestBudgetValidation:
         pref = Preference(budget_max_try=2_000_000, budget_min_try=1_000_000)
         assert pref.budget_min_try < pref.budget_max_try
 
+    def test_budget_min_zero_accepted(self) -> None:
+        pref = Preference(budget_max_try=1_000_000, budget_min_try=0)
+        assert pref.budget_min_try == 0
+
     def test_negative_budget_min_rejected(self) -> None:
         with pytest.raises(ValidationError):
             Preference(budget_max_try=1_000_000, budget_min_try=-1)
