@@ -1,0 +1,11 @@
+id,brand,model,variant,year,body_type,fuel_type,transmission,consumption_l_100km,consumption_kwh_100km,range_km,power_hp,seats,trunk_l,euro_ncap_stars,price_try,price_checked_at,spec_source_url,price_source_url
+1,Renault,Clio,1.0 TCe Evolution,2024,hatchback,petrol,manual,5.1,,,90,5,391,5,1150000,2026-11-16,https://www.renault.com.tr/araclar/binek-araclar/clio.html,https://www.renault.com.tr/fiyat-listesi.html
+2,Fiat,Egea,1.4 Fire Easy,2024,sedan,petrol,manual,6.4,,,95,5,520,3,960000,2026-11-16,https://www.fiat.com.tr/modeller/egea-sedan,https://www.fiat.com.tr/fiyat-listesi
+3,Toyota,Corolla,1.8 Hybrid Dream,2024,sedan,hybrid,automatic,4.5,,,140,5,471,5,1820000,2026-11-16,https://www.toyota.com.tr/modeller/corolla,https://www.toyota.com.tr/fiyat-listesi
+4,Volkswagen,Golf,1.5 eTSI Life,2024,hatchback,hybrid,automatic,5.3,,,150,5,381,5,1950000,2026-11-16,https://www.vw.com.tr/modeller/binek-araclar/golf,https://www.vw.com.tr/fiyat-listesi
+5,Peugeot,2008,1.2 PureTech Allure,2024,suv,petrol,automatic,5.9,,,130,5,434,4,1750000,2026-11-16,https://www.peugeot.com.tr/modeller/suv-2008.html,https://www.peugeot.com.tr/fiyat-listesi.html
+6,Tesla,Model Y,Standard Range,2024,suv,electric,automatic,,15.7,455,299,5,854,5,2200000,2026-11-16,https://www.tesla.com/tr_tr/modely,https://www.tesla.com/tr_tr/modely/design
+7,Hyundai,i20,1.2 MPI Jump,2024,hatchback,petrol,manual,5.8,,,84,5,352,3,920000,2026-11-16,https://www.hyundai.com/tr/tr/araclar/i20,https://www.hyundai.com/tr/tr/fiyat-listesi
+8,Skoda,Octavia,1.5 TSI Premium,2024,sedan,petrol,automatic,5.3,,,150,5,600,5,1980000,2026-11-16,https://www.skoda.com.tr/modeller/octavia,https://www.skoda.com.tr/fiyat-listesi
+9,BYD,Atto 3,Design 60.4 kWh,2024,suv,electric,automatic,,15.6,420,204,5,440,5,1790000,2026-11-16,https://www.bydauto.com.tr/modeller/atto3,https://www.bydauto.com.tr/fiyat-listesi
+10,Dacia,Duster,1.0 TCe Essential,2024,suv,petrol,manual,6.2,,,90,5,478,3,1250000,2026-11-16,https://www.dacia.com.tr/modeller/yeni-duster.html,https://www.dacia.com.tr/fiyat-listesi.html

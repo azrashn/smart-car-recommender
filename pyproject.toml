@@ -1,0 +1,48 @@
+# Tool configuration only. Runtime dependencies live in requirements.txt,
+# development tools in requirements-dev.txt.
+
+[project]
+name = "smart-car-recommender"
+version = "0.1.0"
+description = "AutoMatch: explainable, scenario-based car recommendation (SENG 461)"
+readme = "README.md"
+requires-python = ">=3.11"
+
+# --------------------------------------------------------------------------
+# Ruff (lint + format)
+# --------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["app/static"]
+
+[tool.ruff.lint]
+# E/F: pycodestyle errors + pyflakes, B: bugbear, SIM: simplify, C4: comprehensions.
+# W, I and UP stay off until existing modules are cleaned up with `ruff check --fix`.
+select = ["E", "F", "B", "SIM", "C4"]
+# Long lines are handled by `ruff format`; long strings and URLs are allowed.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI dependencies such as Depends() and Query() are meant to be call defaults.
+"app/**/router.py" = ["B008"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# --------------------------------------------------------------------------
+# Pytest
+# --------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets plain `pytest` import `app` without installing the project.
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/static/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

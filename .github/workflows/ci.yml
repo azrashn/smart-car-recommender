@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install ruff pytest pytest-cov httpx
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            # requirements.txt (T01) henüz yoksa testlerin ihtiyacı olan paket
+            pip install pydantic
+          fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      # Şimdilik yalnızca gerçek hataları yakalar (sözdizimi, tanımsız/kullanılmayan isimler).
+      # Stil kuralları (import sırası, tip yazımı) için pyproject.toml ile ruff ayarı eklenince genişletilir.
+      - name: Lint
+        run: ruff check . --select E9,F
+
+      # `python -m pytest`, depo kökünü import yoluna ekler (`from app...` çalışsın diye).
+      - name: Tests
+        env:
+          AI_PROVIDER: none
+        run: python -m pytest --cov=app
