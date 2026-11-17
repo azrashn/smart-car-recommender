@@ -1,0 +1,2 @@
+id,brand,model,variant,year,body_type,fuel_type,transmission,consumption_l_100km,consumption_kwh_100km,range_km,power_hp,seats,trunk_l,euro_ncap_stars,price_try,price_checked_at,spec_source_url,price_source_url
+1,ExampleBrand,ExampleModel,1.0 TSI Comfort,2025,hatchback,petrol,automatic,5.2,,,110,5,380,5,1500000,2026-11-17,https://example.com/specs,https://example.com/prices
