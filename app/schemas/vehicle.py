@@ -78,10 +78,17 @@ class Vehicle(BaseModel):
 
     # --- Identity ---
     id: int = Field(..., ge=1, description="Stable catalogue ID; never reused.")
-    brand: str = Field(..., min_length=1, max_length=50, description="Brand, e.g. Toyota.")
-    model: str = Field(..., min_length=1, max_length=50, description="Model, e.g. Corolla.")
+    brand: str = Field(
+        ..., min_length=1, max_length=50, description="Brand, e.g. Toyota."
+    )
+    model: str = Field(
+        ..., min_length=1, max_length=50, description="Model, e.g. Corolla."
+    )
     variant: str = Field(
-        ..., min_length=1, max_length=100, description="Engine and trim, e.g. 1.8 Hybrid Dream."
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Engine and trim, e.g. 1.8 Hybrid Dream.",
     )
     year: int = Field(..., ge=2000, le=2100, description="Model year.")
 
@@ -97,12 +104,18 @@ class Vehicle(BaseModel):
     consumption_kwh_100km: float | None = Field(
         None, gt=0, le=50, description="Energy use in kWh/100 km. Electric only."
     )
-    range_km: int | None = Field(None, gt=0, le=1500, description="Electric range in km.")
+    range_km: int | None = Field(
+        None, gt=0, le=1500, description="Electric range in km."
+    )
 
     # --- Specs used for scoring ---
-    power_hp: int | None = Field(None, gt=0, le=2000, description="Power in PS (metric hp).")
+    power_hp: int | None = Field(
+        None, gt=0, le=2000, description="Power in PS (metric hp)."
+    )
     seats: int = Field(..., ge=2, le=9, description="Number of seats.")
-    trunk_l: int | None = Field(None, gt=0, le=3000, description="Boot volume in litres.")
+    trunk_l: int | None = Field(
+        None, gt=0, le=3000, description="Boot volume in litres."
+    )
     euro_ncap_stars: int | None = Field(
         None, ge=0, le=5, description="Euro NCAP rating (0-5). Empty if not tested."
     )
@@ -126,16 +139,24 @@ class Vehicle(BaseModel):
         """Reject energy values that make no sense for the vehicle's fuel type."""
         if self.fuel_type == FuelType.electric.value:
             if self.consumption_l_100km is not None:
-                raise ValueError("electric vehicles must leave consumption_l_100km empty")
+                raise ValueError(
+                    "electric vehicles must leave consumption_l_100km empty"
+                )
         else:
             for field_name in ("consumption_kwh_100km", "range_km"):
                 if getattr(self, field_name) is not None:
-                    raise ValueError(f"{field_name} is only allowed for electric vehicles")
+                    raise ValueError(
+                        f"{field_name} is only allowed for electric vehicles"
+                    )
         return self
 
 
 class VehicleListResponse(BaseModel):
     """Response body of GET /api/vehicles."""
 
-    total: int = Field(..., ge=0, description="Number of vehicles matching the filters.")
-    items: list[Vehicle] = Field(default_factory=list, description="Vehicles on this page.")
+    total: int = Field(
+        ..., ge=0, description="Number of vehicles matching the filters."
+    )
+    items: list[Vehicle] = Field(
+        default_factory=list, description="Vehicles on this page."
+    )

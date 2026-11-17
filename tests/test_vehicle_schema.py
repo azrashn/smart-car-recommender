@@ -17,7 +17,9 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 def _fixture_rows() -> list[dict[str, str]]:
-    with (FIXTURES_DIR / "sample_vehicles.csv").open(encoding="utf-8", newline="") as file:
+    with (FIXTURES_DIR / "sample_vehicles.csv").open(
+        encoding="utf-8", newline=""
+    ) as file:
         return list(csv.DictReader(file))
 
 
@@ -55,7 +57,9 @@ def test_csv_columns_match_schema_fields() -> None:
 
 
 def test_fixture_csv_header_matches_schema() -> None:
-    with (FIXTURES_DIR / "sample_vehicles.csv").open(encoding="utf-8", newline="") as file:
+    with (FIXTURES_DIR / "sample_vehicles.csv").open(
+        encoding="utf-8", newline=""
+    ) as file:
         header = next(csv.reader(file))
 
     assert tuple(header) == VEHICLE_CSV_COLUMNS
@@ -81,7 +85,9 @@ def test_csv_strings_are_parsed_to_typed_values() -> None:
 
 
 def test_empty_cells_become_none() -> None:
-    vehicle = Vehicle.model_validate(_valid_row(power_hp="", trunk_l=" ", euro_ncap_stars=""))
+    vehicle = Vehicle.model_validate(
+        _valid_row(power_hp="", trunk_l=" ", euro_ncap_stars="")
+    )
 
     assert vehicle.power_hp is None
     assert vehicle.trunk_l is None
@@ -130,7 +136,9 @@ def test_invalid_values_are_rejected(field: str, value: str) -> None:
         Vehicle.model_validate(_valid_row(**{field: value}))
 
 
-@pytest.mark.parametrize("field", ["seats", "price_try", "price_checked_at", "spec_source_url"])
+@pytest.mark.parametrize(
+    "field", ["seats", "price_try", "price_checked_at", "spec_source_url"]
+)
 def test_required_fields_cannot_be_missing(field: str) -> None:
     row = _valid_row()
     del row[field]
@@ -185,7 +193,9 @@ def test_vehicles_work_with_m3_hard_filters() -> None:
 
 
 def test_vehicle_list_response_shape() -> None:
-    response = VehicleListResponse(total=1, items=[Vehicle.model_validate(_valid_row())])
+    response = VehicleListResponse(
+        total=1, items=[Vehicle.model_validate(_valid_row())]
+    )
 
     body = response.model_dump(mode="json")
 
