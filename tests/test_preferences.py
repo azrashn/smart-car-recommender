@@ -25,6 +25,7 @@ from app.schemas.preference import (
     BodyType,
     FuelType,
     Preference,
+    PreferenceDraft,
     Priority,
     ScoringPriorities,
     TextExtractionResult,
@@ -288,11 +289,84 @@ class TestHardFilterCriteria:
 
 
 # ---------------------------------------------------------------------------
+# PreferenceDraft
+# ---------------------------------------------------------------------------
+
+
+class TestPreferenceDraft:
+    def test_draft_without_budget_is_valid(self) -> None:
+        draft = PreferenceDraft()
+        assert draft.budget_max_try is None
+        assert draft.missing_required_fields() == ["budget_max_try"]
+
+    def test_draft_partial_text_extraction(self) -> None:
+        draft = PreferenceDraft(
+            transmission="automatic",
+            body_types=[BodyType.suv],
+            fuel_types=[FuelType.hybrid],
+        )
+        assert draft.budget_max_try is None
+        assert draft.transmission == "automatic"
+        assert FuelType.hybrid in draft.fuel_types
+        assert draft.missing_required_fields() == ["budget_max_try"]
+
+    def test_to_preference_without_budget_raises_error(self) -> None:
+        draft = PreferenceDraft(transmission="automatic")
+        with pytest.raises(
+            ValueError,
+            match="Cannot convert PreferenceDraft to Preference: missing required field",
+        ):
+            draft.to_preference()
+
+    def test_to_preference_with_budget_returns_preference(self) -> None:
+        draft = PreferenceDraft(
+            budget_max_try=1_500_000,
+            budget_min_try=800_000,
+            transmission="automatic",
+            body_types=[BodyType.suv],
+        )
+        assert draft.missing_required_fields() == []
+        pref = draft.to_preference()
+        assert isinstance(pref, Preference)
+        assert pref.budget_max_try == 1_500_000
+        assert pref.budget_min_try == 800_000
+        assert pref.transmission == "automatic"
+
+    def test_draft_min_gt_max_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="budget_min_try"):
+            PreferenceDraft(budget_max_try=1_000_000, budget_min_try=1_500_000)
+
+    def test_draft_with_only_budget_min_valid(self) -> None:
+        draft = PreferenceDraft(budget_min_try=500_000)
+        assert draft.budget_min_try == 500_000
+        assert draft.budget_max_try is None
+        assert draft.missing_required_fields() == ["budget_max_try"]
+
+    def test_draft_extra_field_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            PreferenceDraft(budget_max_try=1_000_000, unknown_extra="foo")
+
+
+# ---------------------------------------------------------------------------
 # TextExtractionResult
 # ---------------------------------------------------------------------------
 
 
 class TestTextExtractionResult:
+    def test_valid_ai_result_with_draft_without_budget(self) -> None:
+        draft = PreferenceDraft(
+            fuel_types=[FuelType.electric], body_types=[BodyType.suv]
+        )
+        result = TextExtractionResult(
+            preference=draft,
+            missing_fields=["budget_max_try", "annual_km"],
+            method="ai",
+        )
+        assert result.method == "ai"
+        assert result.preference.budget_max_try is None
+        assert "budget_max_try" in result.missing_fields
+        assert "annual_km" in result.missing_fields
+
     def test_valid_ai_result(self) -> None:
         pref = Preference(budget_max_try=1_200_000, fuel_types=[FuelType.electric])
         result = TextExtractionResult(

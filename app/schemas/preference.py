@@ -132,7 +132,7 @@ class ScoringPriorities(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Main schema
+# Preference Draft & Preference schemas
 # ---------------------------------------------------------------------------
 
 _PositiveInt = Annotated[int, Field(gt=0)]
@@ -141,33 +141,21 @@ _AnnualKm = Annotated[int, Field(ge=1_000, le=200_000)]
 _MinSeats = Annotated[int, Field(ge=2, le=9)]
 
 
-class Preference(BaseModel):
-    """User preference input — the central contract for all AutoMatch modules.
+class PreferenceDraft(BaseModel):
+    """User preference draft where all fields, including budget_max_try, are optional.
 
-    Hard-constraint fields (used as filters by M3)
-    -----------------------------------------------
-    ``budget_max_try``, ``transmission``, ``fuel_types``, ``body_types``,
-    ``min_seats``
-
-    Scoring fields (used as weighted criteria by M3)
-    -------------------------------------------------
-    ``priorities``  →  ``ScoringPriorities.weights()``
-
-    Scenario Lab fields (overridden per scenario by M6)
-    ----------------------------------------------------
-    ``annual_km``
-
-    Text-extraction fields (populated by T13 / T31)
-    ------------------------------------------------
-    All fields; partial fill is valid (missing fields reported separately).
+    Used by text extraction (T13 / T31) to capture partial preferences from free text
+    (e.g. user specifies "automatic SUV" without mentioning a budget).
+    When the missing mandatory fields are provided by the user, call ``to_preference()``
+    to obtain a full ``Preference`` object suitable for the recommendation engine (M3).
     """
 
     model_config = {"extra": "forbid"}
 
     # --- Budget ---
-    budget_max_try: _PositiveInt = Field(
-        ...,
-        description="Maximum purchase price in Turkish Lira (TRY). Required.",
+    budget_max_try: _PositiveInt | None = Field(
+        default=None,
+        description="Maximum purchase price in Turkish Lira (TRY). Optional in draft.",
     )
     budget_min_try: _NonNegativeInt | None = Field(
         default=None,
@@ -238,8 +226,8 @@ class Preference(BaseModel):
 
     # --- Cross-field validators ---
     @model_validator(mode="after")
-    def _budget_min_lte_max(self) -> Preference:
-        """Ensure budget_min_try does not exceed budget_max_try."""
+    def _budget_min_lte_max(self) -> PreferenceDraft:
+        """Ensure budget_min_try does not exceed budget_max_try if both are set."""
         if (
             self.budget_min_try is not None
             and self.budget_max_try is not None
@@ -251,43 +239,7 @@ class Preference(BaseModel):
             )
         return self
 
-    # --- Convenience helpers ---
-    def hard_filter_criteria(self) -> dict:
-        """Return a dict ready to pass directly to ``apply_hard_filters`` in M3.
-
-        Example::
-
-            from app.engine.filters import apply_hard_filters
-            results = apply_hard_filters(vehicles, pref.hard_filter_criteria())
-        """
-        return {
-            "budget_max": self.budget_max_try,
-            "transmission": self.transmission,
-            "fuel_types": [ft.value for ft in self.fuel_types],
-            "seats_min": self.min_seats,
-            "body_types": [bt.value for bt in self.body_types],
-        }
-
-
-# ---------------------------------------------------------------------------
-# Preference Draft model (for partial text extraction)
-# ---------------------------------------------------------------------------
-
-
-class PreferenceDraft(Preference):
-    """User preference draft where all fields, including budget_max_try, are optional.
-
-    Used by text extraction (T13 / T31) to capture partial preferences from free text
-    (e.g. user specifies "automatic SUV" without mentioning a budget).
-    When the missing mandatory fields are provided by the user, call ``to_preference()``
-    to obtain a full ``Preference`` object suitable for the recommendation engine (M3).
-    """
-
-    budget_max_try: _PositiveInt | None = Field(
-        default=None,
-        description="Maximum purchase price in TRY (optional in draft).",
-    )
-
+    # --- Draft helpers ---
     def missing_required_fields(self) -> list[str]:
         """Return the names of mandatory fields missing to form a full Preference."""
         missing: list[str] = []
@@ -308,6 +260,50 @@ class PreferenceDraft(Preference):
                 f"Cannot convert PreferenceDraft to Preference: missing required field(s): {fields_str}"
             )
         return Preference.model_validate(self.model_dump())
+
+
+class Preference(PreferenceDraft):
+    """User preference input — the central contract for all AutoMatch modules.
+
+    Hard-constraint fields (used as filters by M3)
+    -----------------------------------------------
+    ``budget_max_try``, ``transmission``, ``fuel_types``, ``body_types``,
+    ``min_seats``
+
+    Scoring fields (used as weighted criteria by M3)
+    -------------------------------------------------
+    ``priorities``  →  ``ScoringPriorities.weights()``
+
+    Scenario Lab fields (overridden per scenario by M6)
+    ----------------------------------------------------
+    ``annual_km``
+
+    Text-extraction fields (populated by T13 / T31)
+    ------------------------------------------------
+    All fields; partial fill is valid (missing fields reported separately).
+    """
+
+    budget_max_try: _PositiveInt = Field(
+        ...,
+        description="Maximum purchase price in Turkish Lira (TRY). Required.",
+    )
+
+    # --- Convenience helpers ---
+    def hard_filter_criteria(self) -> dict:
+        """Return a dict ready to pass directly to ``apply_hard_filters`` in M3.
+
+        Example::
+
+            from app.engine.filters import apply_hard_filters
+            results = apply_hard_filters(vehicles, pref.hard_filter_criteria())
+        """
+        return {
+            "budget_max": self.budget_max_try,
+            "transmission": self.transmission,
+            "fuel_types": [ft.value for ft in self.fuel_types],
+            "seats_min": self.min_seats,
+            "body_types": [bt.value for bt in self.body_types],
+        }
 
 
 # ---------------------------------------------------------------------------
