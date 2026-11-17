@@ -242,6 +242,7 @@ class Preference(BaseModel):
         """Ensure budget_min_try does not exceed budget_max_try."""
         if (
             self.budget_min_try is not None
+            and self.budget_max_try is not None
             and self.budget_min_try > self.budget_max_try
         ):
             raise ValueError(
@@ -269,6 +270,47 @@ class Preference(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Preference Draft model (for partial text extraction)
+# ---------------------------------------------------------------------------
+
+
+class PreferenceDraft(Preference):
+    """User preference draft where all fields, including budget_max_try, are optional.
+
+    Used by text extraction (T13 / T31) to capture partial preferences from free text
+    (e.g. user specifies "automatic SUV" without mentioning a budget).
+    When the missing mandatory fields are provided by the user, call ``to_preference()``
+    to obtain a full ``Preference`` object suitable for the recommendation engine (M3).
+    """
+
+    budget_max_try: _PositiveInt | None = Field(
+        default=None,
+        description="Maximum purchase price in TRY (optional in draft).",
+    )
+
+    def missing_required_fields(self) -> list[str]:
+        """Return the names of mandatory fields missing to form a full Preference."""
+        missing: list[str] = []
+        if self.budget_max_try is None:
+            missing.append("budget_max_try")
+        return missing
+
+    def to_preference(self) -> Preference:
+        """Convert this draft to a fully-validated Preference object.
+
+        Raises:
+            ValueError: If any mandatory field (e.g. budget_max_try) is missing.
+        """
+        missing = self.missing_required_fields()
+        if missing:
+            fields_str = ", ".join(missing)
+            raise ValueError(
+                f"Cannot convert PreferenceDraft to Preference: missing required field(s): {fields_str}"
+            )
+        return Preference.model_validate(self.model_dump())
+
+
+# ---------------------------------------------------------------------------
 # Text-extraction result model (POST /api/preferences/text response)
 # ---------------------------------------------------------------------------
 
@@ -281,15 +323,15 @@ _PREFERENCE_FIELDS = frozenset(Preference.model_fields.keys())
 class TextExtractionResult(BaseModel):
     """Response schema for POST /api/preferences/text.
 
-    Wraps a (possibly partial) ``Preference`` with metadata about which fields
+    Wraps a (possibly partial) ``PreferenceDraft`` with metadata about which fields
     could not be inferred and which extraction method was used.
     """
 
     model_config = {"extra": "forbid"}
 
-    preference: Preference = Field(
+    preference: PreferenceDraft = Field(
         ...,
-        description="Extracted preference object (may contain default values for undetected fields).",
+        description="Extracted preference draft (may omit mandatory fields such as budget_max_try).",
     )
     missing_fields: list[str] = Field(
         default_factory=list,
