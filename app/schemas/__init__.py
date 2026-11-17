@@ -18,15 +18,8 @@ from app.schemas.recommendation import (
     RelaxationSuggestion,
     ScoreBreakdown,
 )
-from app.schemas.vehicle import (
-    VEHICLE_CSV_COLUMNS,
-    Transmission,
-    Vehicle,
-    VehicleListResponse,
-)
 
 __all__ = [
-    "VEHICLE_CSV_COLUMNS",
     "BodyType",
     "ConflictReport",
     "FuelType",
@@ -39,9 +32,8 @@ __all__ = [
     "ScoreBreakdown",
     "ScoringPriorities",
     "TextExtractionResult",
-    "Transmission",
     "UsageType",
-    "Vehicle",
-    "VehicleListResponse",
     "priority_weight",
 ]
+
+from app.schemas.vehicle import VEHICLE_CSV_COLUMNS, Vehicle, VehicleListResponse
