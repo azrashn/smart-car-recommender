@@ -68,6 +68,8 @@
   const inputBudgetMin = document.getElementById("budgetMin");
   const inputAnnualKm = document.getElementById("annualKm");
   const inputMinSeats = document.getElementById("minSeats");
+  const previewBudgetMax = document.getElementById("budgetMaxPreview");
+  const previewBudgetMin = document.getElementById("budgetMinPreview");
 
   // Error containers
   const errors = {
@@ -76,6 +78,112 @@
     annualKm: document.getElementById("annualKmError"),
     minSeats: document.getElementById("minSeatsError"),
   };
+
+  // =========================================================================
+  // Number Formatting & Readable Previews (Turkish tr-TR)
+  // =========================================================================
+
+  /**
+   * Parse digits from input string into integer or null
+   */
+  function parseRawInt(val) {
+    if (val === null || val === undefined) return null;
+    const digits = String(val).replace(/\D/g, "");
+    if (!digits) return null;
+    const num = parseInt(digits, 10);
+    return isNaN(num) ? null : num;
+  }
+
+  /**
+   * Format integer into tr-TR thousand-separated string (e.g. 1.500.000)
+   */
+  function formatThousand(num) {
+    if (num === null || num === undefined || isNaN(num)) return "";
+    return new Intl.NumberFormat("tr-TR").format(num);
+  }
+
+  /**
+   * Format amount into readable Turkish words (e.g. "1,5 milyon TL", "850 bin TL")
+   */
+  function formatReadableAmount(num) {
+    if (num === null || num === undefined || isNaN(num) || num < 0) return "";
+    if (num === 0) return "0 TL";
+
+    if (num >= 1_000_000) {
+      const millions = num / 1_000_000;
+      const str = millions.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+      return `${str} milyon TL`;
+    }
+
+    if (num >= 1_000) {
+      const thousands = num / 1_000;
+      const str = thousands.toLocaleString("tr-TR", { maximumFractionDigits: 1 });
+      return `${str} bin TL`;
+    }
+
+    return `${num.toLocaleString("tr-TR")} TL`;
+  }
+
+  function updateBudgetPreview(input, previewEl) {
+    if (!previewEl) return;
+    const raw = parseRawInt(input.value);
+    previewEl.textContent = raw !== null ? formatReadableAmount(raw) : "";
+  }
+
+  /**
+   * Attach live thousand formatting with cursor preservation
+   */
+  function attachThousandFormatting(input, previewEl) {
+    if (!input) return;
+
+    input.addEventListener("input", function () {
+      const oldVal = this.value;
+      const selStart = this.selectionStart || 0;
+
+      // Count how many digits exist to the left of the cursor before reformatting
+      const digitsBeforeCursor = oldVal.slice(0, selStart).replace(/\D/g, "").length;
+
+      // Extract raw digits only
+      const rawDigits = oldVal.replace(/\D/g, "");
+
+      if (!rawDigits) {
+        this.value = "";
+        if (previewEl) previewEl.textContent = "";
+        clearFieldError(this);
+        saveDraft();
+        return;
+      }
+
+      const num = parseInt(rawDigits, 10);
+      const formatted = formatThousand(num);
+
+      // Determine new cursor position so cursor stays right after the same digit
+      let newCursorPos = 0;
+      let digitsSeen = 0;
+      for (let i = 0; i < formatted.length; i++) {
+        if (/\d/.test(formatted[i])) {
+          digitsSeen++;
+        }
+        if (digitsSeen === digitsBeforeCursor) {
+          newCursorPos = i + 1;
+          break;
+        }
+      }
+      if (digitsBeforeCursor === 0) {
+        newCursorPos = 0;
+      }
+
+      this.value = formatted;
+      this.setSelectionRange(newCursorPos, newCursorPos);
+
+      if (previewEl) {
+        updateBudgetPreview(this, previewEl);
+      }
+
+      clearFieldError(this);
+      saveDraft();
+    });
+  }
 
   /**
    * Initialize wizard on DOM load
@@ -120,15 +228,18 @@
       });
     });
 
-    // Input change saves draft
-    [inputBudgetMax, inputBudgetMin, inputAnnualKm, inputMinSeats].forEach((input) => {
-      if (input) {
-        input.addEventListener("input", function () {
-          clearFieldError(this);
-          saveDraft();
-        });
-      }
-    });
+    // Attach live thousand formatting for numeric inputs
+    attachThousandFormatting(inputBudgetMax, previewBudgetMax);
+    attachThousandFormatting(inputBudgetMin, previewBudgetMin);
+    attachThousandFormatting(inputAnnualKm, null);
+
+    // Min seats raw input
+    if (inputMinSeats) {
+      inputMinSeats.addEventListener("input", function () {
+        clearFieldError(this);
+        saveDraft();
+      });
+    }
   }
 
   // =========================================================================
@@ -249,29 +360,26 @@
 
     if (state.currentStep === 1) {
       // Step 1: Budget
-      const maxValStr = inputBudgetMax.value.trim();
-      const minValStr = inputBudgetMin.value.trim();
+      const maxVal = parseRawInt(inputBudgetMax.value);
+      const minVal = parseRawInt(inputBudgetMin.value);
+      const hasMaxInput = inputBudgetMax.value.trim().length > 0;
+      const hasMinInput = inputBudgetMin.value.trim().length > 0;
 
-      if (!maxValStr) {
+      if (!hasMaxInput || maxVal === null) {
         setFieldError(inputBudgetMax, "Maksimum bütçe zorunludur.");
         valid = false;
+      } else if (maxVal <= 0) {
+        setFieldError(inputBudgetMax, "Maksimum bütçe 0'dan büyük bir tamsayı olmalıdır.");
+        valid = false;
       } else {
-        const maxVal = parseInt(maxValStr, 10);
-        if (isNaN(maxVal) || maxVal <= 0) {
-          setFieldError(inputBudgetMax, "Maksimum bütçe 0'dan büyük bir tamsayı olmalıdır.");
-          valid = false;
-        } else {
-          clearFieldError(inputBudgetMax);
-        }
+        clearFieldError(inputBudgetMax);
       }
 
-      if (minValStr) {
-        const minVal = parseInt(minValStr, 10);
-        const maxVal = parseInt(maxValStr, 10);
-        if (isNaN(minVal) || minVal < 0) {
+      if (hasMinInput) {
+        if (minVal === null || minVal < 0) {
           setFieldError(inputBudgetMin, "Minimum bütçe 0 veya daha büyük olmalıdır.");
           valid = false;
-        } else if (!isNaN(maxVal) && minVal > maxVal) {
+        } else if (maxVal !== null && minVal > maxVal) {
           setFieldError(inputBudgetMin, "Minimum bütçe maksimum bütçeden büyük olamaz.");
           valid = false;
         } else {
@@ -282,10 +390,10 @@
       }
     } else if (state.currentStep === 2) {
       // Step 2: Usage
-      const kmStr = inputAnnualKm.value.trim();
-      if (kmStr) {
-        const km = parseInt(kmStr, 10);
-        if (isNaN(km) || km < 1000 || km > 200000) {
+      const hasKmInput = inputAnnualKm.value.trim().length > 0;
+      const km = parseRawInt(inputAnnualKm.value);
+      if (hasKmInput) {
+        if (km === null || km < 1000 || km > 200000) {
           setFieldError(inputAnnualKm, "Yıllık km 1.000 ile 200.000 arasında olmalıdır.");
           valid = false;
         } else {
@@ -330,17 +438,15 @@
   // =========================================================================
 
   function buildPayload() {
-    const maxVal = parseInt(inputBudgetMax.value.trim(), 10);
-    const minValStr = inputBudgetMin.value.trim();
-    const minVal = minValStr ? parseInt(minValStr, 10) : null;
+    const maxVal = parseRawInt(inputBudgetMax.value);
+    const minVal = parseRawInt(inputBudgetMin.value);
 
     // Usage type
     const selectedUsage = document.querySelector("input[name='usage_type']:checked");
     const usageType = selectedUsage ? selectedUsage.value : null;
 
     // Annual km
-    const kmStr = inputAnnualKm.value.trim();
-    const annualKm = kmStr ? parseInt(kmStr, 10) : null;
+    const annualKm = parseRawInt(inputAnnualKm.value);
 
     // Transmission
     const selectedTrans = document.querySelector("input[name='transmission']:checked");
@@ -456,14 +562,14 @@
   function saveDraft() {
     try {
       const draft = {
-        budget_max_try: inputBudgetMax.value,
-        budget_min_try: inputBudgetMin.value,
+        budget_max_try: parseRawInt(inputBudgetMax.value),
+        budget_min_try: parseRawInt(inputBudgetMin.value),
         usage_type: (document.querySelector("input[name='usage_type']:checked") || {}).value || "",
-        annual_km: inputAnnualKm.value,
+        annual_km: parseRawInt(inputAnnualKm.value),
         transmission: (document.querySelector("input[name='transmission']:checked") || {}).value || "",
         fuel_types: Array.from(document.querySelectorAll("input[name='fuel_types']:checked")).map((cb) => cb.value),
         body_types: Array.from(document.querySelectorAll("input[name='body_types']:checked")).map((cb) => cb.value),
-        min_seats: inputMinSeats.value,
+        min_seats: inputMinSeats.value ? parseInt(inputMinSeats.value, 10) : null,
         priorities: { ...state.priorities },
       };
       sessionStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(draft));
@@ -478,8 +584,14 @@
       if (!raw) return;
       const draft = JSON.parse(raw);
 
-      if (draft.budget_max_try !== undefined) inputBudgetMax.value = draft.budget_max_try;
-      if (draft.budget_min_try !== undefined) inputBudgetMin.value = draft.budget_min_try;
+      if (draft.budget_max_try !== undefined && draft.budget_max_try !== null && draft.budget_max_try !== "") {
+        inputBudgetMax.value = formatThousand(draft.budget_max_try);
+        updateBudgetPreview(inputBudgetMax, previewBudgetMax);
+      }
+      if (draft.budget_min_try !== undefined && draft.budget_min_try !== null && draft.budget_min_try !== "") {
+        inputBudgetMin.value = formatThousand(draft.budget_min_try);
+        updateBudgetPreview(inputBudgetMin, previewBudgetMin);
+      }
 
       if (draft.usage_type) {
         const r = document.querySelector(`input[name='usage_type'][value='${draft.usage_type}']`);
@@ -489,7 +601,9 @@
         }
       }
 
-      if (draft.annual_km !== undefined) inputAnnualKm.value = draft.annual_km;
+      if (draft.annual_km !== undefined && draft.annual_km !== null && draft.annual_km !== "") {
+        inputAnnualKm.value = formatThousand(draft.annual_km);
+      }
 
       if (draft.transmission !== undefined) {
         const t = document.querySelector(`input[name='transmission'][value='${draft.transmission}']`);

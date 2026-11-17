@@ -35,6 +35,9 @@ Tarayıcıda açın:
 | **1.3** | Minimum > Maksimum | Maksimum: `1.000.000`, Minimum: `1.500.000` girip "İleri"ye tıklayın. | `"Minimum bütçe maksimum bütçeden büyük olamaz."` hatası gösterilmelidir. | [ ] |
 | **1.4** | Minimum Bütçe 0 | Maksimum: `1.500.000`, Minimum: `0` girip "İleri"ye tıklayın. | Hata vermemeli, Adım 2'ye geçmelidir (şema 0 tabanına izin verir). | [ ] |
 | **1.5** | Geçerli Bütçe | Maksimum: `1.500.000`, Minimum: `800.000` (veya boş) girip "İleri"ye tıklayın. | Adım 2'ye geçmeli, ilerleme çubuğu %40 olmalıdır. | [ ] |
+| **1.6** | Binlik Ayraç Canlı Biçimlendirme | Maksimum bütçeye `1500000` yazın. | Yazdıkça değer otomatik olarak `1.500.000` (tr-TR nokta ayracı) biçimine dönmelidir. | [ ] |
+| **1.7** | Okunabilir Metin Önizlemesi | Maksimum bütçeye `1500000`, minimum bütçeye `850000` yazın. | Maksimum altında `"1,5 milyon TL"`, minimum altında `"850 bin TL"` mavi etiketle görünmelidir. Alan temizlendiğinde önizleme kaybolmalıdır. | [ ] |
+| **1.8** | İmleç ve Karakter Filtreleme | `1.500.000` yazdıktan sonra `5` ile `0` arasına tıklayıp rakam ekleyin veya harf tuşlayın. | Harfler yazılmamalı; araya rakam eklenirken imleç sona zıplamamalı, doğru basamakta kalmalıdır. | [ ] |
 
 ---
 
@@ -47,6 +50,7 @@ Tarayıcıda açın:
 | **2.3** | Düşük Yıllık km (<1.000) | Yıllık km alanına `500` yazıp "İleri"ye tıklayın. | `"Yıllık km 1.000 ile 200.000 arasında olmalıdır."` hatası gösterilmeli, geçiş engellenmelidir. | [ ] |
 | **2.4** | Yüksek Yıllık km (>200.000) | Yıllık km alanına `250000` yazıp "İleri"ye tıklayın. | Aynı şekilde aralık hatası gösterilmelidir. | [ ] |
 | **2.5** | Geçerli km | `15000` girip "İleri"ye tıklayın. | Hata vermemeli, Adım 3'e geçmelidir (%60 ilerleme). | [ ] |
+| **2.6** | Yıllık km Binlik Ayraç | Yıllık km alanına `25000` yazın. | Yazdıkça otomatik `25.000` olmalıdır. | [ ] |
 
 ---
 

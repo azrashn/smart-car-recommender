@@ -57,14 +57,16 @@
               <span data-i18n="survey.budget_max.label">Maksimum Bütçe (TL)</span> *
             </label>
             <span class="form-hint" data-i18n="survey.budget_max.hint">Aşmak istemediğiniz en yüksek tutar.</span>
-            <input type="number" id="budgetMax" name="budget_max_try" class="form-input" placeholder="Örn: 1500000" min="1" step="10000" required>
+            <input type="text" inputmode="numeric" id="budgetMax" name="budget_max_try" class="form-input" placeholder="Örn: 1.500.000" autocomplete="off" required>
+            <div class="form-preview" id="budgetMaxPreview" aria-live="polite"></div>
             <div class="form-error" id="budgetMaxError" aria-live="polite"></div>
           </div>
 
           <div class="form-group">
             <label for="budgetMin" class="form-label" data-i18n="survey.budget_min.label">Minimum Bütçe (TL)</label>
             <span class="form-hint" data-i18n="survey.budget_min.hint">İsteğe bağlı. Belirli bir fiyatın altındaki araçları eler.</span>
-            <input type="number" id="budgetMin" name="budget_min_try" class="form-input" placeholder="Örn: 800000" min="0" step="10000">
+            <input type="text" inputmode="numeric" id="budgetMin" name="budget_min_try" class="form-input" placeholder="Örn: 800.000" autocomplete="off">
+            <div class="form-preview" id="budgetMinPreview" aria-live="polite"></div>
             <div class="form-error" id="budgetMinError" aria-live="polite"></div>
           </div>
         </section>
@@ -104,7 +106,7 @@
           <div class="form-group">
             <label for="annualKm" class="form-label" data-i18n="survey.annual_km.label">Tahmini Yıllık Kilometre (km)</label>
             <span class="form-hint" data-i18n="survey.annual_km.hint">İsteğe bağlı (1.000 – 200.000 km arası). Yakıt maliyetinde kullanılır.</span>
-            <input type="number" id="annualKm" name="annual_km" class="form-input" placeholder="Örn: 15000" min="1000" max="200000" step="1000">
+            <input type="text" inputmode="numeric" id="annualKm" name="annual_km" class="form-input" placeholder="Örn: 15.000" autocomplete="off">
             <div class="form-error" id="annualKmError" aria-live="polite"></div>
           </div>
         </section>
