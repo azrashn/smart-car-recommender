@@ -12,7 +12,8 @@ flowchart TD
     index[index.html] --> survey[survey.html]
     survey --> results[results.html]
     results --> compare[compare.html]
-    compare --> scenario[scenario.html]
+    results --> scenario[scenario.html]
+    compare --> scenario
     catalog[catalog.html] --> compare
 ```
 
@@ -24,8 +25,8 @@ flowchart TD
 | Sayfa | Amaç | Endpoint(ler) | i18n öneki | Sahip modül |
 | --- | --- | --- | --- | --- |
 | `index.html` | Uygulamayı tanıtır ve kullanıcıyı ankete yönlendirir. | yok | `index.*` | M5 |
-| `survey.html` | Kullanıcının tercihlerini form veya serbest metin ile toplar. | `POST /api/preferences/form`, `POST /api/preferences/text` | `survey.*` | M2 |
-| `results.html` | Tercihlere göre ilk 5 aracı skor ve gerekçeyle listeler. | `POST /api/recommendations` | `results.*` | M5 |
+| `survey.html` | Kullanıcının tercihlerini form veya serbest metin ile toplar; serbest metinde onay adımı vardır (3.2b). | `POST /api/preferences/form`, `POST /api/preferences/text` | `survey.*` | M2 |
+| `results.html` | Tercihlere göre ilk 5 aracı skor ve gerekçeyle listeler; scenario'ya geçiş sağlar. | `POST /api/recommendations` | `results.*` | M5 |
 | `catalog.html` | Tüm araçları listeler ve detayını gösterir. | `GET /api/vehicles`, `GET /api/vehicles/{id}` | `catalog.*` | M1 |
 | `compare.html` | 2-3 aracı yan yana tablo ve grafikle karşılaştırır. | `GET /api/compare?ids=1,2,3` | `compare.*` | M5 |
 | `scenario.html` | Varsayımlar değişince sıralamanın nasıl değiştiğini gösterir. | `POST /api/scenarios` | `scenario.*` | M6 |
@@ -70,19 +71,59 @@ Metinler kısa yer tutucudur; gerçek metinler i18n dosyalarından gelir.
 |  Gövde tipi:   [ v seçiniz ]                     |
 |  Yakıt tipi:   [ v seçiniz ]                     |
 |  Vites:        ( ) Manuel  ( ) Otomatik          |
+|  Koltuk sayısı:[ v seçiniz ]                     |
+|  Yıllık km:    [ ______ ] km                     |
+|  Kullanım tipi:[ v seçiniz ]                     |
 |  Öncelikler:   [x] Yakıt ekonomisi [ ] İç hacim  |
-|                [ ] Performans [ ] Bütçeye uygunluk|
+|                [ ] Performans [ ] Fiyat avantajı |
 |                [ ] Güvenlik                      |
 |                                                  |
 |  [ Önerileri göster ]                            |
++--------------------------------------------------+
+| (Serbest metin sekmesi: bkz. 3.2b)               |
++--------------------------------------------------+
+```
+
+- Bütçe min-max sert filtredir; min boşsa alt sınır yok.
+- Koltuk sayısı sert filtredir.
+- Yıllık km ve kullanım tipi FR-03 gereğidir; yıllık km olmadan maliyet hesaplanamaz.
+- Kullanım tipi seçenekleri: TBD.
+
+### 3.2b survey.html - serbest metin onay adımı
+
+Akış: metin yaz -> [Tercihleri çıkar] -> "Anladığımız tercihler" kartı -> eksik alan varsa ek soru -> [Onayla ve önerileri göster].
+
+```text
++--------------------------------------------------+
+| <ortak menü>                                     |
++--------------------------------------------------+
+| Anket                                            |
+| [ Form ] [ Serbest metin ]        <sekmeler>     |
 +--------------------------------------------------+
 | (Serbest metin sekmesi)                          |
 |  +--------------------------------------------+  |
 |  | <ne aradığınızı yazın...>                  |  |
 |  +--------------------------------------------+  |
-|  [ Önerileri göster ]                            |
+|  [ Tercihleri çıkar ]                            |
++--------------------------------------------------+
+| Anladığımız tercihler       Yöntem: <ai | rule>  |
+|  Bütçe:        [ min ____ ] [ max ____ ]         |
+|  Gövde tipi:   [ v <çıkarılan değer> ]           |
+|  Vites:        ( ) Manuel  ( ) Otomatik          |
+|  Yıllık km:    [ <çıkarılan değer> ] km          |
+|  ...           (tüm alanlar düzenlenebilir)      |
++--------------------------------------------------+
+| Eksik bilgi (yalnızca eksik alan varsa)          |
+|  Yakıt türü tercihiniz var mı?  [ v seçiniz ]    |
++--------------------------------------------------+
+|  [ Onayla ve önerileri göster ]                  |
 +--------------------------------------------------+
 ```
+
+- Kart, `POST /api/preferences/text` yanıtını kullanır: Preference + eksik alanlar + `method` (`ai` / `rule`).
+- Kartta çıkarılan alanlar düzenlenebilir; çıkarma yöntemi kartın başlığında gösterilir.
+- Eksik alanların her biri için bir ek soru gösterilir.
+- Onaylanan tercih `automatch.preference` anahtarıyla sessionStorage'a yazılır ve `results.html` açılır.
 
 ### 3.3 results.html
 
@@ -97,6 +138,7 @@ Metinler kısa yer tutucudur; gerçek metinler i18n dosyalarından gelir.
 |    | [kasa ikonu]  Marka Model      [ ] Karşılaştır|
 |    | Fiyat: <fiyat> (örnek fiyat, <tarih> kontrol edildi) |
 |    | Skor: [##########----] 82/100              ||
+|    | Yıllık tahmini enerji maliyeti: <maliyet> TL ||
 |    | Güçlü:  + yakıt ekonomisi  + fiyat         ||
 |    | Zayıf:  - bagaj hacmi                      ||
 |    | Açıklama: <neden önerildiğini anlatan metin>||
@@ -106,9 +148,38 @@ Metinler kısa yer tutucudur; gerçek metinler i18n dosyalarından gelir.
 |    +--------------------------------------------+|
 | #3 ... #4 ... #5                                 |
 +--------------------------------------------------+
-| [ Seçilenleri karşılaştır ]                      |
+| [ Seçilenleri karşılaştır ]   [ Senaryo dene ]   |
 +--------------------------------------------------+
 ```
+
+- "Yıllık tahmini enerji maliyeti" satırı FR-11 gereğidir. Değerin kaynağı (`POST /api/recommendations` yanıtı mı, `/api/compare` mı) TBD (bkz. bölüm 5).
+- [Senaryo dene] `scenario.html` sayfasını açar.
+
+### 3.3b results.html - boş sonuç / çelişki raporu
+
+FR-09: sonuç çıkmazsa kartlar yerine çelişki raporu gösterilir.
+
+```text
++--------------------------------------------------+
+| <ortak menü>                                     |
++--------------------------------------------------+
+| Kriterlerinize uyan araç bulunamadı              |
+| <tercih özeti: bütçe, yakıt, ...>                |
++--------------------------------------------------+
+| Engelleyen kısıtlar                              |
+|  - Bütçe   -> Bunu gevşetirsen N araç açılır     |
+|  - Vites   -> Bunu gevşetirsen N araç açılır     |
+|  - Yakıt   -> Bunu gevşetirsen N araç açılır     |
+|  - Koltuk  -> Bunu gevşetirsen N araç açılır     |
++--------------------------------------------------+
+| [ Anketi düzenle ]                               |
++--------------------------------------------------+
+```
+
+- Veri kaynağı: `POST /api/recommendations` çıktısındaki ConflictReport (sözleşmede "ya sonuç ya çelişki raporu").
+- Listede yalnızca engelleyen kısıtlar gösterilir; yukarıdakiler örnektir.
+- ConflictReport içindeki alan adları: TBD (`docs/api-contract.md` ile doğrulanacak).
+- [Anketi düzenle] `survey.html` sayfasını açar.
 
 ### 3.4 catalog.html
 
@@ -133,7 +204,7 @@ Metinler kısa yer tutucudur; gerçek metinler i18n dosyalarından gelir.
 +--------------------------------------------------+
 ```
 
-Araç detayı (`GET /api/vehicles/{id}`) için ayrı sayfa mı, modal mı olacağı TBD.
+Araç detayı (`GET /api/vehicles/{id}`) modal olarak açılır; ayrı sayfa yoktur.
 
 ### 3.5 compare.html
 
@@ -175,14 +246,14 @@ Araç detayı (`GET /api/vehicles/{id}`) için ayrı sayfa mı, modal mı olaca�
 | Varsayımlar                                      |
 |  Yıllık km:      [----o-----------] 15.000 km    |
 |  Yakıt fiyatı:   [-------o--------] <yakıt fiyatı> TL/L |
-|  Elektrik fiyatı: TBD                            |
+|  Elektrik fiyatı: [---o---] <elektrik fiyatı> TL/kWh (örnek fiyat) |
 |                                                  |
-| Öncelik ağırlıkları                              |
-|  Yakıt ekonomisi:   [------o---------] 20%       |
-|  İç hacim:          [------o---------] 20%       |
-|  Performans:        [------o---------] 20%       |
-|  Bütçeye uygunluk:  [------o---------] 20%       |
-|  Güvenlik:          [------o---------] 20%       |
+| Öncelik ağırlıkları (0 Hiç, 1 Düşük, 2 Orta, 3 Yüksek) |
+|  Yakıt ekonomisi: [0-1-2-(3)]  Yüksek (3) - %37,5 |
+|  İç hacim:        [0-1-(2)-3]  Orta (2) - %25    |
+|  Performans:      [0-(1)-2-3]  Düşük (1) - %12,5 |
+|  Fiyat avantajı:  [0-1-(2)-3]  Orta (2) - %25    |
+|  Güvenlik:        [(0)-1-2-3]  Hiç (0) - %0      |
 |                                                  |
 |  [ Sıfırla ]                                     |
 +--------------------------------------------------+
@@ -198,7 +269,26 @@ Araç detayı (`GET /api/vehicles/{id}`) için ayrı sayfa mı, modal mı olaca�
 +--------------------------------------------------+
 ```
 
-Ağırlıkların toplamının %100'e nasıl normalize edileceği TBD. Elektrik fiyatı sürgüsü de TBD.
+- Ağırlık sürgüleri 0-3 ölçeğindedir. Yanındaki yüzde, arayüzün hesapladığı ağırlık / toplam ağırlık oranıdır.
+- Puan formülü ağırlıkların toplamına böler; yüzde yalnızca gösterim içindir.
+- Tüm ağırlıklar 0 ise ağırlıklar eşit kabul edilir.
+- Elektrik fiyatı sürgüsünün varsayılan değeri "örnek fiyat" etiketiyle gösterilir.
+
+### 3.6b Boş durum (tercih yok)
+
+`scenario.html` veya `results.html` açıldığında sessionStorage'daki `automatch.preference` boşsa kullanıcı `survey.html` sayfasına yönlendirilir ve "Önce anket yapın" mesajı gösterilir. Kullanıcı `catalog.html` üzerinden geldiyse de aynı kural geçerlidir.
+
+```text
++--------------------------------------------------+
+| <ortak menü>                                     |
++--------------------------------------------------+
+| (!) Önce anket yapın                             |
++--------------------------------------------------+
+| Anket                                            |
+| [ Form ] [ Serbest metin ]        <sekmeler>     |
+| ... survey.html formu (bkz. 3.2) ...             |
++--------------------------------------------------+
+```
 
 ## 4. Ortak menü
 
@@ -216,9 +306,20 @@ Menü tüm sayfalarda aynıdır. Sıra soldan sağa:
 
 Aktif sayfa menüde vurgulanır. Dil seçimi `tr.json` / `en.json` arasında geçiş yapar.
 
-## 5. Açık sorular
+## 5. Kararlar ve açık sorular
 
-- **i18n anahtar adlandırması:** Önek-sayfa düzeni (`survey.*`, `nav.*`) önerilir; alt düzey adlandırma biçimi (ör. `survey.budget.label`) Fatih ile netleştirilecek.
-- **Sonuç sayfasına veri taşıma:** Tercihlerin veya önerilerin `results.html` sayfasına URL parametresi ile mi, `sessionStorage` ile mi taşınacağı TBD.
-- **Hibrit araç gösterimi:** Hibrit araçların yakıt/tüketim alanlarında nasıl gösterileceği TBD (Belis ile).
-- **Bütçe alanı çakışması:** Bütçe aralığı alanı ile 'Bütçeye uygunluk' önceliği kullanıcıya karışık görünebilir; Fatih ile netleşecek.
+### Kararlar
+
+- **i18n anahtarları:** Sayfa öneki + nokta ile alt düzey kullanılır (`survey.budget.label`, `results.card.strengths`); ortak metinler (Karşılaştır, "örnek fiyat") `common.*` altındadır. `tr.json` ve `en.json` aynı anahtar kümesine sahip olur ve bu, iki dosyanın anahtarlarını eşleştiren küçük bir testle kontrol edilir. (Karar: Azra; son karar T15 sahibi Fatih'te.)
+- **Veri taşıma:** Tercih ve öneri sonucu sessionStorage'da `automatch.preference` anahtarıyla tutulur; karşılaştırma URL'de `?ids=1,2,3` ile taşınır (API ile aynı, paylaşılabilir). `automatch.preference` boşsa kullanıcı `survey.html`'e yönlendirilir (bkz. 3.6b). (Karar: Azra)
+- **Hibrit araçlar:** Hibritler `consumption_l_100km` ile, elektrikliler kWh/100km ile gösterilir; tüketim satırında dolu olan birim yazılır, birimler çevrilmez. Karşılaştırılabilirliği "Yıllık maliyet" satırı sağlar; plug-in hibrit kapsam dışıdır. Belis'ten `fuel_type` değerlerini T02 veri sözlüğünde netleştirmesi istenecek. (Karar: Azra; fuel_type veri sözlüğü: Belis.)
+- **Bütçe:** Min-max sert filtredir, min opsiyoneldir (`budget_min` Preference şemasında opsiyonel; Fatih ile T10'da netleşecek). "Bütçeye uygunluk" önceliği "Fiyat avantajı" adını alır. (Öneri: Azra; budget_min Fatih ile T10'da netleşecek.)
+- **Araç detayı:** Modal olarak açılır, ayrı sayfa yoktur. (Karar: Azra)
+- **Ağırlıklar:** Normalizasyon gerekmez; sürgüler 0-3 ölçeğindedir. (Karar: Azra)
+- **Elektrik fiyatı sürgüsü:** Vardır; varsayılan değer "örnek fiyat" etiketiyle gösterilir. (Karar: Azra)
+
+### Açık sorular
+
+- **Sonuç kartındaki yıllık maliyetin kaynağı:** `POST /api/recommendations` yanıtı mı, `/api/compare` mı: TBD.
+- **Yakıt ve elektrik fiyatı varsayılanları:** Varsayılan değerlerin nerede tutulacağı (config mi, istek mi): TBD.
+- **Kesin alt anahtar adları:** Hangi alt anahtar adlarının (ör. `results.card.*`) kesin olduğu: Fatih (T15).
