@@ -39,23 +39,59 @@
 
 ## 2. Shared error format
 
-All endpoints return errors in this envelope:
+AutoMatch uses **FastAPI's default error format** without any custom exception handlers.
+
+### 422 Unprocessable Entity — Pydantic validation failure
+
+FastAPI wraps Pydantic v2 errors in a `detail` array. Each item identifies the
+failing field (`loc`), a human-readable message (`msg`), and an error type (`type`).
 
 ```json
 {
-  "detail": "Human-readable description of the error.",
-  "code": "machine_readable_error_code"
+  "detail": [
+    {
+      "type": "greater_than",
+      "loc": ["body", "budget_max_try"],
+      "msg": "Input should be greater than 0",
+      "input": -100000,
+      "ctx": {"gt": 0}
+    }
+  ]
 }
 ```
 
-| HTTP status | `code` | Meaning |
-|---|---|---|
-| 422 | `validation_error` | Request body failed Pydantic validation |
-| 404 | `not_found` | Requested resource does not exist |
-| 500 | `internal_error` | Unexpected server error |
+For cross-field validators (e.g. `budget_min_try > budget_max_try`) the `loc`
+points to the model root:
 
-Pydantic validation errors include a `loc` array for field-level detail
-(FastAPI default behaviour, wrapped inside `detail`).
+```json
+{
+  "detail": [
+    {
+      "type": "value_error",
+      "loc": ["body"],
+      "msg": "Value error, budget_min_try (1800000) must be <= budget_max_try (1500000)",
+      "input": {"budget_max_try": 1500000, "budget_min_try": 1800000},
+      "ctx": {"error": "budget_min_try (1800000) must be <= budget_max_try (1500000)"}
+    }
+  ]
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "detail": "Vehicle with id=99 not found."
+}
+```
+
+### 500 Internal Server Error
+
+```json
+{
+  "detail": "Internal server error."
+}
+```
 
 ---
 
@@ -155,8 +191,7 @@ Returns the filtered vehicle catalogue.
 
 ```json
 {
-  "detail": "Vehicle with id=99 not found.",
-  "code": "not_found"
+  "detail": "Vehicle with id=99 not found."
 }
 ```
 
@@ -177,7 +212,7 @@ All fields except `budget_max_try` are optional.
 | Field | Type | Required | Constraints | Description |
 |---|---|---|---|---|
 | `budget_max_try` | integer | **Yes** | > 0 | Maximum purchase price in TRY |
-| `budget_min_try` | integer | No | > 0, ≤ `budget_max_try` | Minimum purchase price in TRY |
+| `budget_min_try` | integer | No | ≥ 0, ≤ `budget_max_try` | Minimum purchase price in TRY |
 | `usage_type` | string | No | `city` \| `highway` \| `mixed` \| `family` | Primary driving context |
 | `annual_km` | integer | No | 1 000 – 200 000 | Expected annual mileage (km) |
 | `transmission` | string | No | `manual` \| `automatic` \| `null` | Required transmission; `null` = no preference |
@@ -245,12 +280,20 @@ The endpoint echoes back the validated and normalised `Preference` object.
 ### Response `422 Unprocessable Entity`
 
 Returned when `budget_min_try > budget_max_try`, a value is out of range,
-or an unknown field is present:
+or an unknown field is present.
+FastAPI default format (see §2):
 
 ```json
 {
-  "detail": "budget_min_try (1800000) must be <= budget_max_try (1500000)",
-  "code": "validation_error"
+  "detail": [
+    {
+      "type": "value_error",
+      "loc": ["body"],
+      "msg": "Value error, budget_min_try (1800000) must be <= budget_max_try (1500000)",
+      "input": {"budget_max_try": 1500000, "budget_min_try": 1800000},
+      "ctx": {"error": "budget_min_try (1800000) must be <= budget_max_try (1500000)"}
+    }
+  ]
 }
 ```
 
@@ -263,6 +306,12 @@ or an unknown field is present:
 Accepts a free-text description in Turkish or English and extracts a `Preference`
 object from it using a rule-based parser (T13) or the AI layer (T31).
 Fields that cannot be inferred are listed in `missing_fields`.
+
+> [!NOTE]
+> **Graceful Degradation (NFR-02):**  
+> If the AI provider is unavailable (e.g. `GEMINI_API_KEY` not configured, provider set to `none`,
+> rate limit hit, or upstream error), the endpoint silently falls back to the rule-based extractor
+> and returns `method: "rule"`. It **never** returns `503 Service Unavailable`.
 
 ### Request body
 
@@ -313,10 +362,18 @@ Fields that cannot be inferred are listed in `missing_fields`.
 
 ### Response `422 Unprocessable Entity`
 
+FastAPI default format (see §2):
+
 ```json
 {
-  "detail": "text field is required and must not be empty.",
-  "code": "validation_error"
+  "detail": [
+    {
+      "type": "missing",
+      "loc": ["body", "text"],
+      "msg": "Field required",
+      "input": {}
+    }
+  ]
 }
 ```
 
@@ -336,7 +393,8 @@ if no vehicle passes all constraints.
 
 ### Request body
 
-A `Preference` object (same schema as §5). The engine reads:
+A `Preference` object directly in the request body (no session or token).
+The engine reads:
 - **Hard filters:** `budget_max_try`, `transmission`, `fuel_types`, `body_types`, `min_seats`
 - **Scoring weights:** `priorities` (via `ScoringPriorities.weights()`)
 - **Cost estimate:** `annual_km` (passed to M5)
@@ -490,10 +548,19 @@ Returns a side-by-side comparison of 2–3 vehicles with estimated annual costs.
 
 ### Response `422 Unprocessable Entity`
 
+FastAPI default format (see §2):
+
 ```json
 {
-  "detail": "ids must contain 2 to 3 vehicle IDs.",
-  "code": "validation_error"
+  "detail": [
+    {
+      "type": "value_error",
+      "loc": ["query", "ids"],
+      "msg": "Value error, ids must contain 2 to 3 vehicle IDs.",
+      "input": "1,2,3,4",
+      "ctx": {"error": "ids must contain 2 to 3 vehicle IDs."}
+    }
+  ]
 }
 ```
 
@@ -616,15 +683,25 @@ Helper: `app.schemas.preference.priority_weight(Priority.high)` → `3`
 | `method` (TextExtractionResult) | `ai`, `rule` |
 
 > [!IMPORTANT]
-> Enum values in the table above are authoritative and match `data/vehicles.csv`
-> column values exactly. Any change must be coordinated across M1, M2, M3, and M6.
+> **Source of enum values:**  
+> Since `data/vehicles.csv` is part of M1/T01 (which has not yet been merged into main),
+> the authoritative enum values were extracted directly from `tests/fixtures/sample_vehicles.csv`
+> and cross-verified against `app/engine/filters.py` and `docs/algorithm.md`.
+> When `data/vehicles.csv` is populated, its values must remain identical to these.
 
-## Appendix C — Open questions for the team
+## Appendix C — Team coordination notes
+
+### Resolved decisions
+
+| # | Topic | Decision |
+|---|---|---|
+| R1 | `POST /api/recommendations` request body | **Direct Preference body.** Stateless; no session or token is used. |
+| R2 | `/api/preferences/text` AI fallback | **Silent fallback to rule-based parser (NFR-02).** Returns `method: "rule"` with HTTP 200 when AI is unconfigured or fails. No 503 error. |
+
+### Open questions
 
 | # | Question | Affects | Owner |
 |---|---|---|---|
-| 1 | `transmission` in Preference is a **single value** (`manual`\|`automatic`\|`null`), matching `filter_by_transmission` in `filters.py` which takes a single string. If M3 needs to accept *multiple* transmissions (e.g. `["manual","automatic"]`), the field must change to `List[Literal[...]]`. | M2, M3 | @karya-karya, @fatihoguzkaya |
-| 2 | Should `POST /api/recommendations` accept a raw `Preference` body, or a session/token that references a previously posted preference? | M2, M3, M5 | @karya-karya |
-| 3 | `POST /api/scenarios` overrides only partial priorities. Should unset priority keys fall back to the base preference, or always to `medium`? | M2, M6 | @azrashn, @fatihoguzkaya |
-| 4 | `GET /api/compare` takes `ids` as a comma-separated query string. Confirm 2–3 vehicle limit and whether a 4th vehicle should return 422 or silently truncate. | M5 | @SudeKarakoc1 |
-| 5 | AI extraction (`method: "ai"`) requires `GEMINI_API_KEY`. Should the endpoint fall back to `"rule"` silently, or return a `503` with `{"code": "ai_unavailable"}`? | M2, M4 | @orhancardak, @fatihoguzkaya |
+| 1 | `transmission` in Preference is currently a **single value** (`manual`\|`automatic`\|`null`), matching `filter_by_transmission` in `filters.py` which takes a single string. If M3 needs to accept *multiple* transmissions (e.g. `["manual","automatic"]`), the field must change to `list[Literal[...]]`. | M2, M3 | @karya-karya, @fatihoguzkaya |
+| 2 | `POST /api/scenarios` overrides only partial priorities. Should unset priority keys fall back to the base preference, or always to `medium`? | M2, M6 | @azrashn, @fatihoguzkaya |
+| 3 | `GET /api/compare` takes `ids` as a comma-separated query string. Confirm 2–3 vehicle limit and whether a 4th vehicle should return 422 or silently truncate. | M5 | @SudeKarakoc1 |
