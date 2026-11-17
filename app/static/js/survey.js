@@ -218,8 +218,11 @@
       btnSubmit.style.display = "none";
     }
 
-    // Scroll to top of card smoothly
+    // Scroll to top of card smoothly and set focus for accessibility
     document.querySelector(".survey-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (stepHeading) {
+      stepHeading.focus();
+    }
   }
 
   // =========================================================================
