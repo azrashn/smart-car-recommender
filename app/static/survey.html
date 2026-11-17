@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="survey.page_title">AutoMatch — Araç Tercih Anketi</title>
+  <link rel="stylesheet" href="survey.css">
+</head>
+<body>
+
+  <!-- TODO: T60 ortak nav ile değiştirilecek -->
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Ana Gezinti">
+      <a href="index.html" class="nav-brand" data-i18n="nav.brand">AutoMatch</a>
+      <ul class="nav-links">
+        <li><a href="index.html" data-i18n="nav.home">Ana Sayfa</a></li>
+        <li><a href="survey.html" class="active" data-i18n="nav.survey">Anket</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="survey-main">
+    <div class="survey-card">
+
+      <!-- Progress / Stepper Header -->
+      <div class="progress-container" aria-label="Anket İlerlemesi">
+        <div class="progress-header">
+          <span class="step-count" id="stepIndicator" data-i18n="survey.step_indicator">Adım 1 / 5</span>
+          <span class="step-title" id="stepHeading" data-i18n="survey.step1_heading">Bütçe Belirleme</span>
+        </div>
+        <div class="progress-bar-bg" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100" id="progressBar">
+          <div class="progress-bar-fill" id="progressFill" style="width: 20%;"></div>
+        </div>
+      </div>
+
+      <!-- Feedback / Alert Notifications -->
+      <div id="surveyAlert" class="alert-box" role="alert" aria-live="polite">
+        <div id="alertMessage"></div>
+        <div class="alert-actions" id="alertActions" style="display: none;">
+          <a href="results.html" id="btnAlertContinue" class="btn btn-primary" data-i18n="survey.btn_continue_to_results">Sonuçlara Devam Et</a>
+        </div>
+      </div>
+
+      <form id="surveyForm" novalidate>
+
+        <!-- =================================================================
+             ADIM 1: BÜTÇE
+             ================================================================= -->
+        <section class="step-pane active" id="step1" aria-labelledby="step1Title">
+          <h2 id="step1Title" data-i18n="survey.step1.title">Ne kadarlık bir bütçe ayırdınız?</h2>
+          <p class="step-description" data-i18n="survey.step1.desc">
+            Bütçenize en uygun ve fiyat avantajı sunan araçları filtrelememize yardımcı olur.
+          </p>
+
+          <div class="form-group">
+            <label for="budgetMax" class="form-label">
+              <span data-i18n="survey.budget_max.label">Maksimum Bütçe (TL)</span> *
+            </label>
+            <span class="form-hint" data-i18n="survey.budget_max.hint">Aşmak istemediğiniz en yüksek tutar.</span>
+            <input type="number" id="budgetMax" name="budget_max_try" class="form-input" placeholder="Örn: 1500000" min="1" step="10000" required>
+            <div class="form-error" id="budgetMaxError" aria-live="polite"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="budgetMin" class="form-label" data-i18n="survey.budget_min.label">Minimum Bütçe (TL)</label>
+            <span class="form-hint" data-i18n="survey.budget_min.hint">İsteğe bağlı. Belirli bir fiyatın altındaki araçları eler.</span>
+            <input type="number" id="budgetMin" name="budget_min_try" class="form-input" placeholder="Örn: 800000" min="0" step="10000">
+            <div class="form-error" id="budgetMinError" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             ADIM 2: KULLANIM TİPİ VE YILLIK KM
+             ================================================================= -->
+        <section class="step-pane" id="step2" aria-labelledby="step2Title">
+          <h2 id="step2Title" data-i18n="survey.step2.title">Aracı nasıl kullanacaksınız?</h2>
+          <p class="step-description" data-i18n="survey.step2.desc">
+            Kullanım profiliniz ve yıllık mesafeniz yakıt/enerji maliyetinizi hesaplamakta kullanılır.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="survey.usage_type.label">Birincil Kullanım Amacı</label>
+            <div class="option-grid" role="radiogroup" aria-label="Kullanım Amacı">
+              <label class="option-card" id="card_usage_city">
+                <input type="radio" name="usage_type" value="city">
+                <span data-i18n="survey.usage.city">Şehir İçi</span>
+              </label>
+              <label class="option-card" id="card_usage_highway">
+                <input type="radio" name="usage_type" value="highway">
+                <span data-i18n="survey.usage.highway">Uzun Yol</span>
+              </label>
+              <label class="option-card" id="card_usage_mixed">
+                <input type="radio" name="usage_type" value="mixed">
+                <span data-i18n="survey.usage.mixed">Karma</span>
+              </label>
+              <label class="option-card" id="card_usage_family">
+                <input type="radio" name="usage_type" value="family">
+                <span data-i18n="survey.usage.family">Aile</span>
+              </label>
+            </div>
+            <div class="form-error" id="usageTypeError" aria-live="polite"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="annualKm" class="form-label" data-i18n="survey.annual_km.label">Tahmini Yıllık Kilometre (km)</label>
+            <span class="form-hint" data-i18n="survey.annual_km.hint">İsteğe bağlı (1.000 – 200.000 km arası). Yakıt maliyetinde kullanılır.</span>
+            <input type="number" id="annualKm" name="annual_km" class="form-input" placeholder="Örn: 15000" min="1000" max="200000" step="1000">
+            <div class="form-error" id="annualKmError" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             ADIM 3: ARAÇ TERCİHLERİ (VİTES, YAKIT, KASA, KOLTUK)
+             ================================================================= -->
+        <section class="step-pane" id="step3" aria-labelledby="step3Title">
+          <h2 id="step3Title" data-i18n="survey.step3.title">Araç Tercihleriniz Neler?</h2>
+          <p class="step-description" data-i18n="survey.step3.desc">
+            Seçim yapmadığınız alanlar "Fark etmez" olarak değerlendirilir ve tüm seçenekler listelenir.
+          </p>
+
+          <!-- Vites -->
+          <div class="form-group">
+            <label class="form-label" data-i18n="survey.transmission.label">Vites Tipi</label>
+            <div class="option-grid" role="radiogroup" aria-label="Vites Tipi">
+              <label class="option-card selected" id="card_trans_any">
+                <input type="radio" name="transmission" value="" checked>
+                <span data-i18n="survey.trans.any">Fark Etmez</span>
+              </label>
+              <label class="option-card" id="card_trans_manual">
+                <input type="radio" name="transmission" value="manual">
+                <span data-i18n="survey.trans.manual">Manuel</span>
+              </label>
+              <label class="option-card" id="card_trans_auto">
+                <input type="radio" name="transmission" value="automatic">
+                <span data-i18n="survey.trans.auto">Otomatik</span>
+              </label>
+            </div>
+            <div class="form-error" id="transmissionError" aria-live="polite"></div>
+          </div>
+
+          <!-- Yakıt Tipleri -->
+          <div class="form-group">
+            <label class="form-label" data-i18n="survey.fuel_types.label">Kabul Edilen Yakıt Tipleri (Çoklu Seçim)</label>
+            <span class="form-hint" data-i18n="survey.fuel_types.hint">Hiçbirini seçmezseniz tüm yakıt tipleri geçerli sayılır.</span>
+            <div class="option-grid">
+              <label class="option-card" id="card_fuel_petrol">
+                <input type="checkbox" name="fuel_types" value="petrol">
+                <span data-i18n="survey.fuel.petrol">Benzin</span>
+              </label>
+              <label class="option-card" id="card_fuel_diesel">
+                <input type="checkbox" name="fuel_types" value="diesel">
+                <span data-i18n="survey.fuel.diesel">Dizel</span>
+              </label>
+              <label class="option-card" id="card_fuel_hybrid">
+                <input type="checkbox" name="fuel_types" value="hybrid">
+                <span data-i18n="survey.fuel.hybrid">Hibrit</span>
+              </label>
+              <label class="option-card" id="card_fuel_electric">
+                <input type="checkbox" name="fuel_types" value="electric">
+                <span data-i18n="survey.fuel.electric">Elektrik</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Gövde Tipleri -->
+          <div class="form-group">
+            <label class="form-label" data-i18n="survey.body_types.label">Gövde / Kasa Tipi (Çoklu Seçim)</label>
+            <span class="form-hint" data-i18n="survey.body_types.hint">Hiçbirini seçmezseniz tüm kasa tipleri geçerli sayılır.</span>
+            <div class="option-grid">
+              <label class="option-card" id="card_body_hatchback">
+                <input type="checkbox" name="body_types" value="hatchback">
+                <span data-i18n="survey.body.hatchback">Hatchback</span>
+              </label>
+              <label class="option-card" id="card_body_sedan">
+                <input type="checkbox" name="body_types" value="sedan">
+                <span data-i18n="survey.body.sedan">Sedan</span>
+              </label>
+              <label class="option-card" id="card_body_suv">
+                <input type="checkbox" name="body_types" value="suv">
+                <span data-i18n="survey.body.suv">SUV</span>
+              </label>
+              <label class="option-card" id="card_body_wagon">
+                <input type="checkbox" name="body_types" value="wagon">
+                <span data-i18n="survey.body.wagon">Station Wagon</span>
+              </label>
+              <label class="option-card" id="card_body_mpv">
+                <input type="checkbox" name="body_types" value="mpv">
+                <span data-i18n="survey.body.mpv">MPV</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Minimum Koltuk Sayısı -->
+          <div class="form-group">
+            <label for="minSeats" class="form-label" data-i18n="survey.min_seats.label">Minimum Koltuk Sayısı</label>
+            <span class="form-hint" data-i18n="survey.min_seats.hint">İsteğe bağlı (2 – 9 arası). Geniş aileler için önerilir.</span>
+            <input type="number" id="minSeats" name="min_seats" class="form-input" placeholder="Örn: 5" min="2" max="9">
+            <div class="form-error" id="minSeatsError" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             ADIM 4: ÖNCELİKLER
+             ================================================================= -->
+        <section class="step-pane" id="step4" aria-labelledby="step4Title">
+          <h2 id="step4Title" data-i18n="survey.step4.title">Öncelikleriniz Neler?</h2>
+          <p class="step-description" data-i18n="survey.step4.desc">
+            Her kriter için önem derecesini belirleyin. Varsayılan seviye "Orta"dır.
+          </p>
+
+          <div class="priority-list">
+            <!-- Yakıt Ekonomisi -->
+            <div class="priority-item">
+              <div class="priority-label-group">
+                <span class="priority-title" data-i18n="survey.priority.fuel.title">Yakıt Ekonomisi</span>
+                <span class="priority-desc" data-i18n="survey.priority.fuel.desc">Düşük tüketim ve yüksek enerji verimliliği.</span>
+              </div>
+              <div class="priority-btn-group" role="radiogroup" aria-label="Yakıt Ekonomisi Önceliği" data-field="fuel_economy">
+                <button type="button" class="priority-btn" data-value="low" data-i18n="survey.priority.low">Düşük</button>
+                <button type="button" class="priority-btn active" data-value="medium" data-i18n="survey.priority.medium">Orta</button>
+                <button type="button" class="priority-btn" data-value="high" data-i18n="survey.priority.high">Yüksek</button>
+              </div>
+            </div>
+
+            <!-- İç Hacim -->
+            <div class="priority-item">
+              <div class="priority-label-group">
+                <span class="priority-title" data-i18n="survey.priority.space.title">İç Hacim ve Bagaj</span>
+                <span class="priority-desc" data-i18n="survey.priority.space.desc">Geniş oturma alanı ve büyük bagaj kapasitesi.</span>
+              </div>
+              <div class="priority-btn-group" role="radiogroup" aria-label="İç Hacim Önceliği" data-field="interior_space">
+                <button type="button" class="priority-btn" data-value="low" data-i18n="survey.priority.low">Düşük</button>
+                <button type="button" class="priority-btn active" data-value="medium" data-i18n="survey.priority.medium">Orta</button>
+                <button type="button" class="priority-btn" data-value="high" data-i18n="survey.priority.high">Yüksek</button>
+              </div>
+            </div>
+
+            <!-- Performans -->
+            <div class="priority-item">
+              <div class="priority-label-group">
+                <span class="priority-title" data-i18n="survey.priority.perf.title">Motor Gücü ve Performans</span>
+                <span class="priority-desc" data-i18n="survey.priority.perf.desc">Yüksek beygir gücü ve seri hızlanma.</span>
+              </div>
+              <div class="priority-btn-group" role="radiogroup" aria-label="Performans Önceliği" data-field="performance">
+                <button type="button" class="priority-btn" data-value="low" data-i18n="survey.priority.low">Düşük</button>
+                <button type="button" class="priority-btn active" data-value="medium" data-i18n="survey.priority.medium">Orta</button>
+                <button type="button" class="priority-btn" data-value="high" data-i18n="survey.priority.high">Yüksek</button>
+              </div>
+            </div>
+
+            <!-- Fiyat Avantajı / Bütçeye Uygunluk -->
+            <div class="priority-item">
+              <div class="priority-label-group">
+                <span class="priority-title" data-i18n="survey.priority.budget.title">Fiyat Avantajı (Bütçe Uyumu)</span>
+                <span class="priority-desc" data-i18n="survey.priority.budget.desc">Maksimum bütçenin mümkün olduğunca altında kalmak.</span>
+              </div>
+              <div class="priority-btn-group" role="radiogroup" aria-label="Bütçe Uyumu Önceliği" data-field="budget_fit">
+                <button type="button" class="priority-btn" data-value="low" data-i18n="survey.priority.low">Düşük</button>
+                <button type="button" class="priority-btn active" data-value="medium" data-i18n="survey.priority.medium">Orta</button>
+                <button type="button" class="priority-btn" data-value="high" data-i18n="survey.priority.high">Yüksek</button>
+              </div>
+            </div>
+
+            <!-- Güvenlik -->
+            <div class="priority-item">
+              <div class="priority-label-group">
+                <span class="priority-title" data-i18n="survey.priority.safety.title">Güvenlik</span>
+                <span class="priority-desc" data-i18n="survey.priority.safety.desc">Euro NCAP çarpışma testi güvenlik puanı.</span>
+              </div>
+              <div class="priority-btn-group" role="radiogroup" aria-label="Güvenlik Önceliği" data-field="safety">
+                <button type="button" class="priority-btn" data-value="low" data-i18n="survey.priority.low">Düşük</button>
+                <button type="button" class="priority-btn active" data-value="medium" data-i18n="survey.priority.medium">Orta</button>
+                <button type="button" class="priority-btn" data-value="high" data-i18n="survey.priority.high">Yüksek</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             ADIM 5: ÖZET VE GÖNDER
+             ================================================================= -->
+        <section class="step-pane" id="step5" aria-labelledby="step5Title">
+          <h2 id="step5Title" data-i18n="survey.step5.title">Tercihlerinizi Onaylayın</h2>
+          <p class="step-description" data-i18n="survey.step5.desc">
+            Seçtiğiniz kriterlerin özeti aşağıdadır. Değiştirmek istediğiniz bölümün yanındaki "Düzenle" butonuna basarak o adıma dönebilirsiniz.
+          </p>
+
+          <div class="summary-container">
+            <!-- Bütçe Özeti -->
+            <div class="summary-section">
+              <div class="summary-header">
+                <h3 data-i18n="survey.summary.budget_title">Bütçe</h3>
+                <button type="button" class="btn-edit" data-target-step="1" data-i18n="survey.summary.edit">Düzenle</button>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.budget_max.label">Maksimum Bütçe:</span>
+                <span class="summary-item-val" id="sumBudgetMax">-</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.budget_min.label">Minimum Bütçe:</span>
+                <span class="summary-item-val" id="sumBudgetMin">Belirtilmedi</span>
+              </div>
+            </div>
+
+            <!-- Kullanım Özeti -->
+            <div class="summary-section">
+              <div class="summary-header">
+                <h3 data-i18n="survey.summary.usage_title">Kullanım Profili</h3>
+                <button type="button" class="btn-edit" data-target-step="2" data-i18n="survey.summary.edit">Düzenle</button>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.usage_type.label">Kullanım Amacı:</span>
+                <span class="summary-item-val" id="sumUsageType">Belirtilmedi</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.annual_km.label">Yıllık Kilometre:</span>
+                <span class="summary-item-val" id="sumAnnualKm">Belirtilmedi</span>
+              </div>
+            </div>
+
+            <!-- Araç Kriterleri Özeti -->
+            <div class="summary-section">
+              <div class="summary-header">
+                <h3 data-i18n="survey.summary.vehicle_title">Araç Tercihleri</h3>
+                <button type="button" class="btn-edit" data-target-step="3" data-i18n="survey.summary.edit">Düzenle</button>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.transmission.label">Vites:</span>
+                <span class="summary-item-val" id="sumTransmission">Fark etmez</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.fuel_types.label">Yakıt Tipleri:</span>
+                <span class="summary-item-val" id="sumFuelTypes">Fark etmez</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.body_types.label">Kasa Tipleri:</span>
+                <span class="summary-item-val" id="sumBodyTypes">Fark etmez</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.min_seats.label">Min Koltuk:</span>
+                <span class="summary-item-val" id="sumMinSeats">Fark etmez</span>
+              </div>
+            </div>
+
+            <!-- Öncelikler Özeti -->
+            <div class="summary-section">
+              <div class="summary-header">
+                <h3 data-i18n="survey.summary.priority_title">Öncelikler</h3>
+                <button type="button" class="btn-edit" data-target-step="4" data-i18n="survey.summary.edit">Düzenle</button>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.priority.fuel.title">Yakıt Ekonomisi:</span>
+                <span class="summary-item-val" id="sumPrioFuel">Orta</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.priority.space.title">İç Hacim:</span>
+                <span class="summary-item-val" id="sumPrioSpace">Orta</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.priority.perf.title">Performans:</span>
+                <span class="summary-item-val" id="sumPrioPerf">Orta</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.priority.budget.title">Fiyat Avantajı:</span>
+                <span class="summary-item-val" id="sumPrioBudget">Orta</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-item-label" data-i18n="survey.priority.safety.title">Güvenlik:</span>
+                <span class="summary-item-val" id="sumPrioSafety">Orta</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Navigation Buttons -->
+        <div class="wizard-actions">
+          <button type="button" id="btnPrev" class="btn btn-secondary" style="display: none;" data-i18n="survey.btn_prev">Geri</button>
+          <div style="flex-grow: 1;"></div>
+          <button type="button" id="btnNext" class="btn btn-primary" data-i18n="survey.btn_next">İleri</button>
+          <button type="submit" id="btnSubmit" class="btn btn-primary" style="display: none;" data-i18n="survey.btn_submit">Önerileri Gör</button>
+        </div>
+
+      </form>
+    </div>
+  </main>
+
+  <script src="js/survey.js"></script>
+</body>
+</html>
