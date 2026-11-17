@@ -1,0 +1,81 @@
+{
+  "_comment": "Sample Preference fixtures for T10 schema tests. All examples must validate against app/schemas/preference.Preference.",
+
+  "city_economy": {
+    "_description": "Budget-conscious city driver — minimal constraints, default priorities.",
+    "budget_max_try": 1200000,
+    "usage_type": "city",
+    "annual_km": 12000,
+    "transmission": "manual",
+    "fuel_types": ["petrol"],
+    "body_types": [],
+    "min_seats": null,
+    "priorities": {
+      "fuel_economy": "high",
+      "interior_space": "low",
+      "performance": "low",
+      "budget_fit": "high",
+      "safety": "medium"
+    },
+    "language": "tr"
+  },
+
+  "family_suv": {
+    "_description": "Family user needing a large automatic SUV with safety as top priority.",
+    "budget_max_try": 2000000,
+    "budget_min_try": 1500000,
+    "usage_type": "family",
+    "annual_km": 25000,
+    "transmission": "automatic",
+    "fuel_types": ["petrol", "hybrid"],
+    "body_types": ["suv"],
+    "min_seats": 5,
+    "priorities": {
+      "fuel_economy": "medium",
+      "interior_space": "high",
+      "performance": "low",
+      "budget_fit": "medium",
+      "safety": "high"
+    },
+    "language": "tr"
+  },
+
+  "electric_priority": {
+    "_description": "Highway commuter prioritising electric vehicles and performance.",
+    "budget_max_try": 2500000,
+    "usage_type": "highway",
+    "annual_km": 40000,
+    "transmission": null,
+    "fuel_types": ["electric", "hybrid"],
+    "body_types": ["sedan", "hatchback"],
+    "min_seats": null,
+    "priorities": {
+      "fuel_economy": "high",
+      "interior_space": "medium",
+      "performance": "high",
+      "budget_fit": "low",
+      "safety": "medium"
+    },
+    "language": "en"
+  },
+
+  "maximal_constraints": {
+    "_description": "All fields populated — used to verify full model round-trip and weights() output.",
+    "budget_max_try": 1800000,
+    "budget_min_try": 900000,
+    "usage_type": "mixed",
+    "annual_km": 18000,
+    "transmission": "automatic",
+    "fuel_types": ["petrol", "diesel", "hybrid"],
+    "body_types": ["sedan", "suv", "wagon"],
+    "min_seats": 5,
+    "priorities": {
+      "fuel_economy": "high",
+      "interior_space": "high",
+      "performance": "medium",
+      "budget_fit": "high",
+      "safety": "high"
+    },
+    "language": "tr"
+  }
+}

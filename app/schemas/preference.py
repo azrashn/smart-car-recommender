@@ -21,7 +21,6 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-
 # ---------------------------------------------------------------------------
 # Enums — values must stay in sync with sample_vehicles.csv / filters.py
 # ---------------------------------------------------------------------------
@@ -238,9 +237,12 @@ class Preference(BaseModel):
 
     # --- Cross-field validators ---
     @model_validator(mode="after")
-    def _budget_min_lte_max(self) -> "Preference":
+    def _budget_min_lte_max(self) -> Preference:
         """Ensure budget_min_try does not exceed budget_max_try."""
-        if self.budget_min_try is not None and self.budget_min_try > self.budget_max_try:
+        if (
+            self.budget_min_try is not None
+            and self.budget_min_try > self.budget_max_try
+        ):
             raise ValueError(
                 f"budget_min_try ({self.budget_min_try}) must be "
                 f"<= budget_max_try ({self.budget_max_try})"

@@ -19,19 +19,17 @@ from app.schemas.recommendation import (
 )
 
 __all__ = [
-    # preference.py (M2)
     "BodyType",
+    "ConflictReport",
     "FuelType",
     "Preference",
     "Priority",
-    "ScoringPriorities",
-    "TextExtractionResult",
-    "UsageType",
-    "priority_weight",
-    # recommendation.py (M3)
-    "ConflictReport",
     "RecommendationItem",
     "RecommendationResult",
     "RelaxationSuggestion",
     "ScoreBreakdown",
+    "ScoringPriorities",
+    "TextExtractionResult",
+    "UsageType",
+    "priority_weight",
 ]
