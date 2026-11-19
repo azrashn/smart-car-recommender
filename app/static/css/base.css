@@ -65,6 +65,12 @@ body {
   color: var(--color-text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;
+}
+
+img, svg, video {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Layout */
@@ -79,15 +85,19 @@ body {
 .site-header {
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  padding: 0.75rem var(--space-4);
+  padding: 0.75rem 0;
 }
 
 .site-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
   max-width: var(--container-width);
   margin: 0 auto;
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
 }
 
 .nav-brand {
@@ -95,10 +105,14 @@ body {
   font-size: 1.25rem;
   color: var(--color-primary);
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 .nav-links {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
   list-style: none;
   margin: 0;
@@ -112,6 +126,9 @@ body {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
   transition: color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 .nav-links a:hover,
@@ -144,6 +161,8 @@ body {
   border: 1px solid transparent;
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  min-height: 44px;
+  line-height: 1.5;
 }
 
 .btn:focus-visible {
@@ -205,6 +224,7 @@ body {
   background-color: var(--color-surface);
   color: var(--color-text);
   transition: border-color 0.15s, box-shadow 0.15s;
+  min-height: 44px;
 }
 
 .form-input:focus,
@@ -282,6 +302,7 @@ body {
 .alert-actions {
   margin-top: 0.75rem;
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
