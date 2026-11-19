@@ -314,8 +314,76 @@ def parse_budget(norm: str) -> tuple[int | None, int | None]:
 
 
 # ---------------------------------------------------------------------------
+# Transmission parsing
+# ---------------------------------------------------------------------------
+#
+# "otomatik" / "automatic" / "auto"  -> "automatic"
+# "manuel" / "manual" / "duz vites"  -> "manual"
+# Both wanted, or "vites fark etmez" / "any transmission" -> None.
+# Negation flips the meaning: "manuel olmasin" -> automatic, "no automatic" -> manual.
+# A bare "duz" is NOT manual ("duz yolda"); only "duz vites" is.
+
+_AUTOMATIC_RE = re.compile(r"\b(?:otomatik\w*|automatic\w*|auto\b)")
+_MANUAL_RE = re.compile(r"\b(?:manuel\w*|manual\w*|duz\s+vites\w*)")
+
+# "vites fark etmez", "vites onemli degil", "any transmission", "don't care about the gearbox".
+_TRANSMISSION_WORD = r"(?:vites\w*|transmission|gearbox|gear)"
+_INDIFFERENT_WORD = (
+    r"(?:fark\s*et\w*|farki\s+yok|onemli\s+degil|onemsiz|doesn\s+t\s+matter"
+    r"|does\s+not\s+matter|not\s+important|don\s+t\s+care|dont\s+care|no\s+preference)"
+)
+_TRANSMISSION_INDIFFERENT_RE = re.compile(
+    rf"\b{_TRANSMISSION_WORD}\b[^,.]{{0,40}}?\b{_INDIFFERENT_WORD}"
+    rf"|\b(?:any|either)\s+(?:kind\s+of\s+)?{_TRANSMISSION_WORD}\b"
+    rf"|\b(?:don\s+t|dont|do\s+not)\s+care\s+(?:about|for)\s+(?:the\s+)?{_TRANSMISSION_WORD}\b"
+)
+
+# Negation right after the term ("olmasin", "istemiyorum", "degil") — at most one
+# filler word in between, so "otomatik olsun, bagaj onemli degil" is not negated.
+_NEGATED_AFTER_RE = re.compile(
+    r"^\s*(?:(?:vites\w*|arac\w*|araba\w*|olarak|bir|de|da|ise)\s+)?"
+    r"(?:olmasin\w*|olmamali\w*|olmayan|olmayacak|istemiyor\w*|istemem|degil)\b"
+)
+# Negation right before the term ("no manual", "not automatic", "non-automatic").
+_NEGATED_BEFORE_RE = re.compile(
+    r"\b(?:no|not|without|never|avoid|hate)\s+(?:a\s+|an\s+|the\s+)?$|\bnon-?$"
+)
+
+
+def _term_polarity(norm: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
+    """Return ``(mentioned_positively, mentioned_negatively)`` for ``pattern``."""
+    positive = negative = False
+    for m in pattern.finditer(norm):
+        before = norm[max(0, m.start() - 20) : m.start()]
+        if _NEGATED_AFTER_RE.match(norm[m.end() :]) or _NEGATED_BEFORE_RE.search(before):
+            negative = True
+        else:
+            positive = True
+    return positive, negative
+
+
+def parse_transmission(norm: str) -> str | None:
+    """Return ``"automatic"``, ``"manual"`` or ``None`` (no/unclear preference)."""
+    if _TRANSMISSION_INDIFFERENT_RE.search(norm):
+        return None
+    auto_pos, auto_neg = _term_polarity(norm, _AUTOMATIC_RE)
+    manual_pos, manual_neg = _term_polarity(norm, _MANUAL_RE)
+    wants_automatic = auto_pos or manual_neg
+    wants_manual = manual_pos or auto_neg
+    if wants_automatic and not wants_manual:
+        return "automatic"
+    if wants_manual and not wants_automatic:
+        return "manual"
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
+
+# TODO(T13 stage 2): match the electric-vehicle abbreviation "ev" only when the
+# detected language is "en". In Turkish "ev" means "house" ("ev icin araba"), so
+# matching it there would give false positives.
 
 
 def _build_draft(text: str) -> PreferenceDraft:
@@ -325,6 +393,7 @@ def _build_draft(text: str) -> PreferenceDraft:
         "language": detect_language(text),
         "budget_min_try": budget_min,
         "budget_max_try": budget_max,
+        "transmission": parse_transmission(norm),
     }
     return PreferenceDraft(**fields)
 
