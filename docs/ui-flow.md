@@ -323,3 +323,42 @@ Aktif sayfa menüde vurgulanır. Dil seçimi `tr.json` / `en.json` arasında ge�
 - **Sonuç kartındaki yıllık maliyetin kaynağı:** `POST /api/recommendations` yanıtı mı, `/api/compare` mı: TBD.
 - **Yakıt ve elektrik fiyatı varsayılanları:** Varsayılan değerlerin nerede tutulacağı (config mi, istek mi): TBD.
 - **Kesin alt anahtar adları:** Hangi alt anahtar adlarının (ör. `results.card.*`) kesin olduğu: Fatih (T15).
+
+## CSS değişkenleri ve ortak bileşenler (T43)
+
+Ortak stiller `app/static/css/base.css` içindedir. Sayfalar renk, boşluk ve benzeri değerleri sabit yazmak yerine aşağıdaki değişkenleri kullanır.
+
+### Değişken grupları
+
+- **Renk:** `--color-primary`, `--color-primary-hover`, `--color-primary-light`, `--color-primary-contrast`, `--color-surface`, `--color-background`, `--color-text`, `--color-text-muted`, `--color-border`, `--color-border-subtle`, `--color-border-focus`, `--color-focus-ring`, `--color-hover-bg`, `--color-danger`, `--color-danger-bg`, `--color-success`, `--color-success-bg`, `--color-warning`, `--color-warning-bg`, `--color-warning-border`, `--color-warning-text`
+- **Tipografi:** `--font-sans`, `--font-size-sm`, `--font-size-base`, `--font-size-lg`, `--font-size-xl`
+- **Boşluk:** `--space-1`, `--space-2`, `--space-3`, `--space-4`, `--space-5`
+- **Şekil ve gölge:** `--radius-md`, `--radius-lg`, `--shadow-sm`, `--shadow-md`
+- **Layout:** `--container-width`
+
+### Ortak sınıflar
+
+- **Layout:** `.container`
+- **Başlık ve menü:** `.site-header`, `.site-nav`, `.nav-brand`, `.nav-links`
+- **Butonlar:** `.btn`, `.btn-primary`, `.btn-secondary`
+- **Formlar:** `.form-*` (`.form-group`, `.form-label`, `.form-hint`, `.form-input`, `.form-select`, `.form-error`; hata durumu için `.form-input.has-error`)
+- **Kartlar:** `.card` (`.card-title`, `.card-subtitle`)
+- **Uyarılar:** `.alert-*` (`.alert-box`, `.alert-warning`, `.alert-danger`, `.alert-success`, `.alert-actions`)
+
+### Kurallar
+
+- Sayfalar `base.css` dosyasını sayfaya özel CSS'ten **önce** yüklemelidir.
+- Sayfaya özel stiller kendi dosyasında kalır (ör. `survey.css`).
+- `.alert-box` varsayılan olarak görünürdür; gizleme (`display: none`) sayfaya özel CSS'te yapılır.
+- Menü metinleri koda gömülmez; `data-i18n="nav.*"` ile i18n anahtarı olarak verilir (bkz. bölüm 4).
+
+### Responsive kurallar
+
+- Her HTML sayfasında `<meta name="viewport" content="width=device-width, initial-scale=1">` zorunludur.
+- Ortak breakpoint `600px`'tir; yeni breakpoint eklemeden önce ekiple konuşulur.
+- Dokunma hedefleri (buton, link, input) en az `44px` yüksekliğindedir.
+- Input font boyutu en az `16px`'tir (iOS otomatik yakınlaştırmayı önlemek için).
+- Geniş tablolar `overflow-x: auto` olan bir kapsayıcı içine konur; sayfa gövdesi yatay kaydırılmaz.
+- Aktif nav linki `class="active"` ve `aria-current="page"` ile işaretlenir.
+- Nav hizası: `.site-nav` yan padding'i taşır, `.site-header` yan padding taşımaz. Böylece nav içeriği `.container` içeriğiyle aynı hizada kalır.
+- Hedef kontrol genişlikleri: 320, 375, 768, 1280px.
