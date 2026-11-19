@@ -351,3 +351,14 @@ Ortak stiller `app/static/css/base.css` içindedir. Sayfalar renk, boşluk ve be
 - Sayfaya özel stiller kendi dosyasında kalır (ör. `survey.css`).
 - `.alert-box` varsayılan olarak görünürdür; gizleme (`display: none`) sayfaya özel CSS'te yapılır.
 - Menü metinleri koda gömülmez; `data-i18n="nav.*"` ile i18n anahtarı olarak verilir (bkz. bölüm 4).
+
+### Responsive kurallar
+
+- Her HTML sayfasında `<meta name="viewport" content="width=device-width, initial-scale=1">` zorunludur.
+- Ortak breakpoint `600px`'tir; yeni breakpoint eklemeden önce ekiple konuşulur.
+- Dokunma hedefleri (buton, link, input) en az `44px` yüksekliğindedir.
+- Input font boyutu en az `16px`'tir (iOS otomatik yakınlaştırmayı önlemek için).
+- Geniş tablolar `overflow-x: auto` olan bir kapsayıcı içine konur; sayfa gövdesi yatay kaydırılmaz.
+- Aktif nav linki `class="active"` ve `aria-current="page"` ile işaretlenir.
+- Nav hizası: `.site-nav` yan padding'i taşır, `.site-header` yan padding taşımaz. Böylece nav içeriği `.container` içeriğiyle aynı hizada kalır.
+- Hedef kontrol genişlikleri: 320, 375, 768, 1280px.
