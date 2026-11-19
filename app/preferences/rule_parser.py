@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from decimal import Decimal
 
 from app.schemas.preference import PreferenceDraft, TextExtractionResult
 
@@ -114,13 +115,217 @@ def detect_language(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Budget parsing
+# ---------------------------------------------------------------------------
+#
+# Strategy
+# 1. Find every number in the normalised text with its optional multiplier
+#    (milyon / bin / million / thousand / M / k) and note currency words.
+# 2. Drop numbers that are clearly not prices ("20 bin km", "7 kisilik", "3 yil")
+#    BEFORE any range detection, so they can never pair with a price.
+# 3. Two neighbouring numbers joined by "-", "ile", "to" (or "ve"/"and" together
+#    with "arasi"/"between") form a range; a unit given only on the second number
+#    ("1-1,5 milyon") is inherited by the first.
+# 4. A single number is the maximum, unless a cue says otherwise ("en az", "at least").
+
+_MILLION = 1_000_000
+_THOUSAND = 1_000
+
+# Plausibility limits. A bare number (no unit, no currency) must be >= _BARE_MIN to
+# count as a price, so years ("2020") and counts are never read as budgets.
+_BUDGET_FLOOR = 10_000
+_BUDGET_CEILING = 100_000_000
+_BARE_MIN = 100_000
+
+_NUMBER_RE = re.compile(
+    r"(?<![a-z\d])"
+    r"(?P<num>\d+(?:[.,]\d+)*)"
+    r"(?P<mult>"
+    r"\s*(?:milyon(?:a|u|da|dan|luk|un)?|million|bin(?:e|i|den)?|thousand)\b"
+    r"|[km]\b)?"
+)
+
+# What may follow a number to show it is NOT a price (after an optional multiplier).
+_NOT_BUDGET_AFTER_RE = re.compile(
+    r"^\s*-?\s*(?:km\b|kilometre|kilometer|kisilik|kisi\b|koltuk|seater|seats?\b"
+    r"|yil|yilda|yillik|year|yr\b|sene|kapi|door|hp\b|bg\b|beygir|litre|liter"
+    r"|lt\b|cc\b|ay\b|month|gun\b|day\b|saat|hour)"
+)
+_CURRENCY_AFTER_RE = re.compile(r"^\s*(?:tl\b|try\b|lira\w*|₺)")
+
+# Cues placed right BEFORE the number (checked against the text ending at it).
+_MAX_BEFORE_RE = re.compile(
+    r"\b(?:en\s+fazla|en\s+cok|maksimum|maks|max|maximum|at\s+most|under|below"
+    r"|up\s*to|less\s+than|not\s+more\s+than|no\s+more\s+than|within)"
+    r"\s*(?:of\s+|about\s+|around\s+)?[₺$]?\s*$"
+)
+_MIN_BEFORE_RE = re.compile(
+    r"\b(?:en\s+az|minimum|min|at\s+least|over|above|more\s+than"
+    r"|not\s+less\s+than|no\s+less\s+than)"
+    r"\s*(?:of\s+|about\s+|around\s+)?[₺$]?\s*$"
+)
+# Cues placed right AFTER the number (and its optional currency word).
+_MAX_AFTER_RE = re.compile(
+    r"^\s*(?:(?:tl|try|lira|₺)\s*)?(?:ve\s+)?"
+    r"(?:kadar|altinda|altina|alti|asmasin|gecmesin|or\s+less|or\s+under|or\s+below)\b"
+)
+_MIN_AFTER_RE = re.compile(
+    r"^\s*(?:(?:tl|try|lira|₺)\s*)?(?:(?:ve|or|and)\s+)?"
+    r"(?:ustu|ustunde|uzeri|uzerinde|fazla|more|up|above|plus)\b|^\s*\+"
+)
+
+# Text allowed between the two numbers of a range.
+_STRONG_JOINER_RE = re.compile(r"^\s*(?:tl\s*|try\s*|lira\s*|₺\s*)?(?:-|ile|ila|to)\s*$")
+_WEAK_JOINER_RE = re.compile(r"^\s*(?:tl\s*|try\s*|lira\s*|₺\s*)?(?:ve|and)\s*$")
+# "arasi" after the second number / "between" before the first one makes "ve"/"and" a range.
+_RANGE_WORD_AFTER_RE = re.compile(r"^\s*(?:(?:tl|try|lira|₺)\s*)?(?:arasi|arasinda|araliginda)\b")
+_RANGE_WORD_BEFORE_RE = re.compile(r"\bbetween\s*[₺$]?\s*$")
+
+
+class _Amount:
+    """One number found in the text, with its surroundings already analysed."""
+
+    __slots__ = ("start", "end", "num", "mult", "currency", "kind")
+
+    def __init__(
+        self,
+        start: int,
+        end: int,
+        num: str,
+        mult: int | None,
+        currency: bool,
+        kind: str,
+    ) -> None:
+        self.start = start
+        self.end = end
+        self.num = num
+        self.mult = mult
+        self.currency = currency
+        self.kind = kind  # "min" or "max" (cue-based; "max" when no cue)
+
+
+def _multiplier_of(raw: str | None) -> int | None:
+    if not raw:
+        return None
+    word = raw.strip()
+    if word.startswith(("milyon", "million")) or word == "m":
+        return _MILLION
+    return _THOUSAND
+
+
+def _to_int(num: str, mult: int | None, currency: bool) -> int | None:
+    """Turn the digits ``num`` into a TRY amount, or ``None`` when not a plausible price."""
+    seps = re.findall(r"[.,]", num)
+    if mult is not None:
+        # With a unit a single separator is the decimal point: "1,5 milyon", "1.2M".
+        if len(seps) > 1:
+            return None
+        value = Decimal(num.replace(",", "."))
+        amount = int(value * mult)
+    else:
+        # Without a unit separators must be thousands groups: "1.500.000".
+        if re.fullmatch(r"\d{1,3}(?:[.,]\d{3})+", num):
+            amount = int(re.sub(r"[.,]", "", num))
+        elif num.isdigit():
+            amount = int(num)
+        else:
+            return None
+        if not currency and amount < _BARE_MIN:
+            return None
+    if not _BUDGET_FLOOR <= amount <= _BUDGET_CEILING:
+        return None
+    return amount
+
+
+def _find_amounts(norm: str) -> list[_Amount]:
+    """Collect price-like numbers, dropping km / seats / years etc. up front."""
+    found: list[_Amount] = []
+    for m in _NUMBER_RE.finditer(norm):
+        tail = norm[m.end() :]
+        if _NOT_BUDGET_AFTER_RE.match(tail):
+            continue
+        before = norm[max(0, m.start() - 40) : m.start()]
+        currency = bool(_CURRENCY_AFTER_RE.match(tail)) or before.rstrip().endswith("₺")
+        is_min = bool(_MIN_BEFORE_RE.search(before) or _MIN_AFTER_RE.match(tail))
+        is_max = bool(_MAX_BEFORE_RE.search(before) or _MAX_AFTER_RE.match(tail))
+        kind = "min" if is_min and not is_max else "max"
+        found.append(
+            _Amount(
+                m.start(), m.end(), m.group("num"), _multiplier_of(m.group("mult")),
+                currency, kind,
+            )
+        )  # fmt: skip
+    return found
+
+
+def _try_range(norm: str, a: _Amount, b: _Amount) -> tuple[int, int] | None:
+    """Return ``(low, high)`` when ``a`` and ``b`` form a plausible range."""
+    between = norm[a.end : b.start]
+    if _STRONG_JOINER_RE.match(between):
+        pass
+    elif _WEAK_JOINER_RE.match(between):
+        word_after = _RANGE_WORD_AFTER_RE.match(norm[b.end :])
+        word_before = _RANGE_WORD_BEFORE_RE.search(norm[max(0, a.start - 20) : a.start])
+        if not (word_after or word_before):
+            return None
+    else:
+        return None
+
+    high = _to_int(b.num, b.mult, b.currency)
+    if high is None:
+        return None
+    # "1-1,5 milyon": the first number may borrow the second one's unit.
+    unit_options = [b.mult, a.mult] if a.mult is None and b.mult is not None else [a.mult]
+    for unit in unit_options:
+        low = _to_int(a.num, unit, a.currency)
+        if low is None:
+            continue
+        if unit is not a.mult and low > high:
+            continue  # the borrowed unit gave a nonsense range
+        return (low, high) if low <= high else (high, low)
+    return None
+
+
+def parse_budget(norm: str) -> tuple[int | None, int | None]:
+    """Return ``(budget_min_try, budget_max_try)`` read from normalised text.
+
+    A range gives both; a single number is the maximum unless it carries an
+    "at least" cue, in which case only the minimum is set.
+    """
+    amounts = _find_amounts(norm)
+    for a, b in zip(amounts, amounts[1:], strict=False):
+        found = _try_range(norm, a, b)
+        if found is not None:
+            return found
+
+    low: int | None = None
+    high: int | None = None
+    for a in amounts:
+        value = _to_int(a.num, a.mult, a.currency)
+        if value is None:
+            continue
+        if a.kind == "min":
+            low = value if low is None else low
+        else:
+            high = value if high is None else high
+    if low is not None and high is not None and low > high:
+        low, high = high, low
+    return low, high
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
 
 def _build_draft(text: str) -> PreferenceDraft:
-    # Field parsers are added in the following commits.
-    fields: dict[str, object] = {"language": detect_language(text)}
+    norm = normalize_text(text)
+    budget_min, budget_max = parse_budget(norm)
+    fields: dict[str, object] = {
+        "language": detect_language(text),
+        "budget_min_try": budget_min,
+        "budget_max_try": budget_max,
+    }
     return PreferenceDraft(**fields)
 
 
