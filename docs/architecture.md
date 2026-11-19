@@ -30,26 +30,30 @@ flowchart LR
 | Module | Folders / files | Responsibility | Owner (backup) |
 | --- | --- | --- | --- |
 | M1 Vehicle data and catalogue | `app/catalog/`, `app/db/`, `data/` | CSV, SQLite seed, `/api/vehicles` | Belis (Sude) |
-| M2 Preferences and survey | `app/schemas/preference.py`, `app/static/survey.*` | Form and free-text preferences | Fatih (Orhan) |
-| M3 Recommendation engine | `app/engine/` | Hard filters, weighted scoring, conflict report | Azra (Fatih) |
-| M4 AI layer and explanations | `app/ai/` | `LLMProvider`, explanations, text parsing | Fatih (Azra) |
-| M5 Comparison and cost | planned | `/api/compare`, annual cost, Chart.js views | Belis (Sude) |
-| M6 Scenario Lab | planned | `/api/scenarios`, break-even km | karya-karya (Orhan) |
+| M2 Preferences and survey | `app/schemas/preference.py`, `app/static/survey.*`, `app/preferences/` *(planned)*, `app/static/i18n/` *(planned)* | Form and free-text preferences, TR/EN UI strings | Fatih (Orhan) |
+| M3 Recommendation engine | `app/engine/` | Hard filters, weighted scoring, conflict report | karya-karya (Azra) |
+| M4 AI layer and explanations | `app/ai/` | `LLMProvider`, explanations, text parsing | Orhan (Fatih) |
+| M5 Comparison and cost | planned | `/api/compare`, annual cost, Chart.js views | Sude (Belis) |
+| M6 Scenario Lab | planned | `/api/scenarios`, break-even km | Azra (karya-karya) |
 
 Modules talk to each other only through the shared Pydantic schemas in
-`app/schemas/` (`Vehicle`, `Preference`, `Recommendation`), never by importing
+`app/schemas/` (`Vehicle`, `Preference`, `RecommendationResult`), never by importing
 each other's internals. This keeps cross-module dependencies small.
 
 ## 3. Request flow
 
 1. The survey page (`app/static/survey.html`, `js/survey.js`) collects preferences.
-2. The API validates them into a `Preference` object (M2).
+   Free text takes a separate path: `POST /api/preferences/text` returns a
+   `TextExtractionResult` that holds a `PreferenceDraft` plus `missing_fields`. The
+   UI asks the user for each missing field. Once the draft is complete it becomes a
+   `Preference`, which is sent to `/api/recommendations`.
+2. The API validates the form input directly into a `Preference` object (M2).
 3. The engine (M3) reads vehicles through the `Vehicle` schema, applies **hard
    filters** (budget, transmission, fuel, seats, body type), then scores each
    remaining vehicle: `score = 100 × Σ(w_i·s_i) / Σ(w_i)` with priority weights
    low/medium/high = 1/2/3. If nothing passes, a conflict report explains which
    constraints clash.
-4. A `Recommendation` list is returned. Scoring, filtering and cost are pure
+4. A `RecommendationResult` list is returned. Scoring, filtering and cost are pure
    deterministic Python; no AI is needed for them.
 5. Optionally, M4 turns the result into a natural-language explanation.
 
