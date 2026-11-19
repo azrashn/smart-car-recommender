@@ -387,6 +387,8 @@ def parse_transmission(norm: str) -> str | None:
 
 
 def _build_draft(text: str) -> PreferenceDraft:
+    if not isinstance(text, str):
+        return PreferenceDraft()
     norm = normalize_text(text)
     budget_min, budget_max = parse_budget(norm)
     fields: dict[str, object] = {
