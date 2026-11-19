@@ -163,6 +163,7 @@ img, svg, video {
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
   min-height: 44px;
   line-height: 1.5;
+  text-decoration: none;
 }
 
 .btn:focus-visible {
