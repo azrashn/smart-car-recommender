@@ -6,6 +6,7 @@ Covers:
 - Budget: single numbers, ranges, "at least" / "at most" cues, TR and EN formats
 - Numbers that are not budgets (km, seats, years) and never form ranges
 - Transmission: both directions, "both"/"doesn't matter", negation, false positives
+- Stage 2: fuel and body types (incl. negation and "ev"), usage type, seats, annual km
 - Empty and meaningless input, determinism
 """
 
@@ -278,3 +279,214 @@ def test_parser_is_deterministic():
     text = "1 ile 1.5 milyon arası, manuel olmasın"
     first = parse_preferences_text(text)
     assert all(parse_preferences_text(text) == first for _ in range(5))
+
+
+# ---------------------------------------------------------------------------
+# Stage 2 — fuel types, body types, usage, seats, annual km
+# ---------------------------------------------------------------------------
+
+
+def fuels(text: str) -> list[str]:
+    return [f.value for f in parse_preferences_text(text).preference.fuel_types]
+
+
+def bodies(text: str) -> list[str]:
+    return [b.value for b in parse_preferences_text(text).preference.body_types]
+
+
+def usage(text: str) -> str | None:
+    u = parse_preferences_text(text).preference.usage_type
+    return u.value if u else None
+
+
+def seats(text: str) -> int | None:
+    return parse_preferences_text(text).preference.min_seats
+
+
+def annual_km(text: str) -> int | None:
+    return parse_preferences_text(text).preference.annual_km
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("benzinliyi tercih ederim", ["petrol"]),
+        ("petrol", ["petrol"]),
+        ("gasoline car", ["petrol"]),
+        ("dizel olsun", ["diesel"]),
+        ("mazotlu araç", ["diesel"]),
+        ("diesel", ["diesel"]),
+        ("hibrit bir araç", ["hybrid"]),
+        ("hybrid", ["hybrid"]),
+        ("elektrikli araba", ["electric"]),
+        ("benzinli veya hibrit", ["petrol", "hybrid"]),
+        ("diesel or petrol, maybe hybrid", ["diesel", "petrol", "hybrid"]),
+        ("benzinli benzinli benzin", ["petrol"]),
+        ("hibrit elektrik", ["hybrid"]),
+        ("hybrid electric", ["hybrid"]),
+    ],
+)
+def test_fuel_types(text, expected):
+    assert fuels(text) == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "dizel olmasın",
+        "dizel istemiyorum",
+        "dizel ve benzinli olmasın",
+        "no diesel",
+        "no diesel or petrol",
+        "non-diesel",
+        "not hybrid",
+    ],
+)
+def test_negated_fuel_is_not_added(text):
+    assert fuels(text) == []
+
+
+def test_fuel_negation_keeps_the_other_fuels():
+    assert fuels("benzinli veya hibrit olsun, dizel olmasın") == ["petrol", "hybrid"]
+    assert fuels("without diesel, petrol is fine") == ["petrol"]
+
+
+def test_ev_abbreviation_only_counts_in_english():
+    assert fuels("I want an EV") == ["electric"]
+    assert fuels("ev için araba arıyorum") == []
+    assert fuels("evim için bir araba") == []
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("SUV'u istiyorum", ["suv"]),
+        ("suvlar", ["suv"]),
+        ("sedan", ["sedan"]),
+        ("hatchback", ["hatchback"]),
+        ("HB tercih", ["hatchback"]),
+        ("hecbek", ["hatchback"]),
+        ("station wagon", ["wagon"]),
+        ("SW", ["wagon"]),
+        ("estate", ["wagon"]),
+        ("mpv", ["mpv"]),
+        ("minivan", ["mpv"]),
+        ("sedan veya SUV", ["sedan", "suv"]),
+    ],
+)
+def test_body_types(text, expected):
+    assert bodies(text) == expected
+
+
+def test_negated_body_type_is_not_added():
+    assert bodies("SUV olmasın") == []
+    assert bodies("sedan olsun, SUV istemiyorum") == ["sedan"]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("şehir içi kullanım", "city"),
+        ("şehirde kullanacağım", "city"),
+        ("city commute", "city"),
+        ("uzun yol", "highway"),
+        ("otoyolda sık giderim", "highway"),
+        ("highway driving", "highway"),
+        ("şehir dışı", "highway"),
+        ("şehirler arası", "highway"),
+        ("karışık kullanım", "mixed"),
+        ("mixed use", "mixed"),
+        ("hem şehir içi hem uzun yol", "mixed"),
+        ("aile aracı", "family"),
+        ("family car", "family"),
+    ],
+)
+def test_usage_type(text, expected):
+    assert usage(text) == expected
+
+
+def test_usage_family_with_driving_context_is_not_guessed():
+    assert usage("aile için şehir içi") is None
+
+
+def test_usage_none_when_not_mentioned():
+    assert usage("otomatik SUV 1,5 milyon") is None
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("7 kişilik", 7),
+        ("7 koltuk", 7),
+        ("7-seater", 7),
+        ("seven seater", 7),
+        ("yedi kişilik", 7),
+        ("at least 5 seats", 5),
+        ("2020 model 5 kişilik", 5),
+        ("5 kişilik veya 7 kişilik", 5),
+        ("1 kişilik", None),
+        ("12 kişilik minibüs", None),
+        ("20.000 km", None),
+    ],
+)
+def test_min_seats(text, expected):
+    assert seats(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("yılda 20 bin km", 20_000),
+        ("20.000 km/yıl", 20_000),
+        ("yıllık 25.000 km", 25_000),
+        ("20 bin km yılda", 20_000),
+        ("15k km a year", 15_000),
+        ("20000 km per year", 20_000),
+        ("yearly 15,000 km", 15_000),
+        ("150.000 km yapmış", None),
+        ("yılda 500.000 km", None),
+        ("yılda 500 km", None),
+    ],
+)
+def test_annual_km(text, expected):
+    assert annual_km(text) == expected
+
+
+def test_annual_km_does_not_leak_into_budget_or_seats():
+    result = parse_preferences_text("yılda 20 bin km, bütçem 1,5 milyon, 7 kişilik").preference
+    assert result.annual_km == 20_000
+    assert result.budget_max_try == 1_500_000
+    assert result.min_seats == 7
+
+
+def test_stage2_full_turkish_sentence():
+    pref = parse_preferences_text(
+        "Şehir içinde kullanacağım, otomatik vitesli, benzinli veya hibrit, "
+        "dizel olmasın, 7 kişilik bir SUV arıyorum. Yılda 15 bin km, "
+        "bütçem en fazla 1,8 milyon."
+    ).preference
+    assert pref.usage_type.value == "city"
+    assert pref.transmission == "automatic"
+    assert [f.value for f in pref.fuel_types] == ["petrol", "hybrid"]
+    assert [b.value for b in pref.body_types] == ["suv"]
+    assert pref.min_seats == 7
+    assert pref.annual_km == 15_000
+    assert pref.budget_max_try == 1_800_000
+    assert pref.language == "tr"
+
+
+def test_stage2_full_english_sentence():
+    result = parse_preferences_text(
+        "I want an automatic hybrid SUV for long highway trips, 7 seats, "
+        "about 20k km a year, under 2 million."
+    )
+    pref = result.preference
+    assert pref.language == "en"
+    assert pref.transmission == "automatic"
+    assert [f.value for f in pref.fuel_types] == ["hybrid"]
+    assert [b.value for b in pref.body_types] == ["suv"]
+    assert pref.usage_type.value == "highway"
+    assert pref.min_seats == 7
+    assert pref.annual_km == 20_000
+    assert pref.budget_max_try == 2_000_000
+    assert result.missing_fields == []
