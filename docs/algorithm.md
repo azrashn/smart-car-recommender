@@ -131,3 +131,33 @@ If `len(matched) == 0`, the engine will:
 1. Identify which constraints individually produce `0` results.
 2. For each blocking constraint, calculate how many vehicles are unlocked by relaxing it by a minimum step.
 3. Return a `ConflictReport` with ranked `RelaxationSuggestion` objects (defined in `app/schemas/recommendation.py`).
+
+
+---
+
+## 6. Weighted Scoring Engine (T22)
+
+Once candidate vehicles pass all hard filters, they are ranked using a multi-criteria weighted scoring formula:
+
+$$\text{score} = 100 \times \frac{\sum_i w_i \cdot s_i}{\sum_i w_i}$$
+
+Where:
+- $s_i \in [0.0, 1.0]$: Normalized score for criterion $i$.
+- $w_i \in \{1, 2, 3\}$: User priority weight (`low=1`, `medium=2`, `high=3`).
+
+### 6.1 Evaluation Criteria
+
+| Criterion | Source Field | Direction | Normalization |
+|---|---|---|---|
+| **Fuel Economy** | `consumption_l_100km` / `consumption_kwh_100km` | Lower is better | $\frac{\max - x}{\max - \min}$ (Electric converted via $1\text{ L} \approx 8.9\text{ kWh}$) |
+| **Budget Fit** | `price_try` | Lower is better | $\frac{\max - x}{\max - \min}$ (More affordable gives higher score) |
+| **Interior Space** | `trunk_l` + `seats * 50` | Higher is better | $\frac{x - \min}{\max - \min}$ |
+| **Performance** | `power_hp` | Higher is better | $\frac{x - \min}{\max - \min}$ |
+| **Safety** | `euro_ncap_stars` | Higher is better | $\frac{\text{stars}}{5.0}$ |
+
+### 6.2 Missing Data Exclusion (NFR-04)
+
+If a criterion's data is missing (e.g., Euro NCAP stars is `None`):
+1. That sub-score is excluded (`None`).
+2. Its corresponding weight $w_i$ is removed from **both numerator and denominator**.
+3. The vehicle is scored purely on its available metrics without being penalized.
