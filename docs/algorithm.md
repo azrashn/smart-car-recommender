@@ -161,3 +161,24 @@ If a criterion's data is missing (e.g., Euro NCAP stars is `None`):
 1. That sub-score is excluded (`None`).
 2. Its corresponding weight $w_i$ is removed from **both numerator and denominator**.
 3. The vehicle is scored purely on its available metrics without being penalized.
+
+
+---
+
+## 7. Recommendation Generation & API Integration (T25)
+
+The recommendation pipeline runs end-to-end via `POST /api/recommendations`:
+
+1. **Input Parsing:** Receives `Preference` data (budget, transmission, fuel types, body types, seat requirement, and priorities).
+2. **Hard Filtering:** Runs `evaluate_hard_filters` (`app/engine/filters.py`).
+3. **Empty Match Handling (Conflict):** If 0 vehicles pass:
+   - Computes which criteria eliminated vehicles.
+   - Evaluates targeted relaxations (e.g. minimum budget needed for the cheapest vehicle matching other criteria, relaxing fuel type or transmission).
+   - Returns a structured `ConflictReport` with actionable `RelaxationSuggestion` items.
+4. **Weighted Scoring & Ranking:** If vehicles match:
+   - Normalizes and calculates weighted scores (`app/engine/scoring.py`).
+   - Sorts candidate vehicles in descending score order.
+   - Takes top 5 recommendations.
+   - Extracts deterministic `strengths` and `weaknesses` tags.
+   - Adds template explanation (fallback for when AI is disabled).
+   - Returns a `RecommendationResult` containing up to 5 ranked `RecommendationItem` objects.

@@ -7,7 +7,34 @@ shared across M3, M4 (AI explanations), M5 (results UI & comparison), and M6 (Sc
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+try:
+    from pydantic import BaseModel, Field
+except ImportError:
+    class BaseModel:  # type: ignore
+        def __init__(self, **kwargs: Any) -> None:
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+
+        def model_dump(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+            return self.__dict__
+
+        def dict(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+            return self.__dict__
+
+        @classmethod
+        def model_validate(cls, data: Any) -> Any:
+            if isinstance(data, dict):
+                return cls(**data)
+            return data
+
+    def Field(*args: Any, **kwargs: Any) -> Any:  # type: ignore
+        default = kwargs.get("default")
+        if default is not None:
+            return default
+        factory = kwargs.get("default_factory")
+        if factory is not None:
+            return factory()
+        return None
 
 
 class ScoreBreakdown(BaseModel):
