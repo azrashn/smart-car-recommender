@@ -338,28 +338,53 @@ _TRANSMISSION_INDIFFERENT_RE = re.compile(
     rf"|\b(?:don\s+t|dont|do\s+not)\s+care\s+(?:about|for)\s+(?:the\s+)?{_TRANSMISSION_WORD}\b"
 )
 
-# Negation right after the term ("olmasin", "istemiyorum", "degil") — at most one
-# filler word in between, so "otomatik olsun, bagaj onemli degil" is not negated.
+# Negation right after the term ("olmasin", "istemiyorum", "degil", "haric") — at most
+# one filler word in between, so "otomatik olsun, bagaj onemli degil" is not negated.
+_NEGATION_WORD = (
+    r"(?:olmasin\w*|olmamali\w*|olmayan|olmayacak|istemiyor\w*|istemem|degil|haric"
+    r"|disinda)\b"
+)
 _NEGATED_AFTER_RE = re.compile(
-    r"^\s*(?:(?:vites\w*|arac\w*|araba\w*|olarak|bir|de|da|ise)\s+)?"
-    r"(?:olmasin\w*|olmamali\w*|olmayan|olmayacak|istemiyor\w*|istemem|degil)\b"
+    r"^\s*(?:(?:vites\w*|arac\w*|araba\w*|motor\w*|yakit\w*|olarak|bir|de|da|ise)\s+)?"
+    + _NEGATION_WORD
 )
 # Negation right before the term ("no manual", "not automatic", "non-automatic").
 _NEGATED_BEFORE_RE = re.compile(
-    r"\b(?:no|not|without|never|avoid|hate)\s+(?:a\s+|an\s+|the\s+)?$|\bnon-?$"
+    r"\b(?:no|not|without|never|avoid|hate|except|excluding)\s+(?:a\s+|an\s+|the\s+)?$"
+    r"|\bnon-?$"
 )
+# List-aware variants for fuel / body type lists, where one negation covers several
+# items: "dizel ve benzinli olmasin", "no diesel or petrol".
+_LIST_JOINER = r"(?:ve|veya|ya\s+da|ile|or|and|nor)"
+_NEGATED_AFTER_LIST_RE = re.compile(
+    rf"^(?:\s+{_LIST_JOINER}\s+[a-z]+)*"
+    r"\s*(?:(?:arac\w*|araba\w*|motor\w*|yakit\w*|olarak|bir|de|da|ise)\s+)?" + _NEGATION_WORD
+)
+_NEGATED_BEFORE_LIST_RE = re.compile(
+    r"\b(?:no|not|without|never|avoid|hate|except|excluding)\s+(?:a\s+|an\s+|the\s+)?"
+    rf"(?:[a-z]+\s+{_LIST_JOINER}\s+)*$|\bnon-?$"
+)
+
+
+def _classify_matches(
+    norm: str, pattern: re.Pattern[str], *, list_aware: bool = False
+) -> list[tuple[int, bool]]:
+    """Return ``(position, is_negated)`` for every match of ``pattern`` in ``norm``."""
+    after_re = _NEGATED_AFTER_LIST_RE if list_aware else _NEGATED_AFTER_RE
+    before_re = _NEGATED_BEFORE_LIST_RE if list_aware else _NEGATED_BEFORE_RE
+    window = 40 if list_aware else 20
+    result: list[tuple[int, bool]] = []
+    for m in pattern.finditer(norm):
+        before = norm[max(0, m.start() - window) : m.start()]
+        negated = bool(after_re.match(norm[m.end() :]) or before_re.search(before))
+        result.append((m.start(), negated))
+    return result
 
 
 def _term_polarity(norm: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
     """Return ``(mentioned_positively, mentioned_negatively)`` for ``pattern``."""
-    positive = negative = False
-    for m in pattern.finditer(norm):
-        before = norm[max(0, m.start() - 20) : m.start()]
-        if _NEGATED_AFTER_RE.match(norm[m.end() :]) or _NEGATED_BEFORE_RE.search(before):
-            negative = True
-        else:
-            positive = True
-    return positive, negative
+    matches = _classify_matches(norm, pattern)
+    return any(not neg for _, neg in matches), any(neg for _, neg in matches)
 
 
 def parse_transmission(norm: str) -> str | None:
