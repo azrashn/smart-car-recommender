@@ -443,10 +443,9 @@ _BODY_TERMS: dict[BodyType, re.Pattern[str]] = {
     BodyType.suv: re.compile(r"\bsuv\w*"),
     BodyType.sedan: re.compile(r"\bsedan\w*"),
     BodyType.hatchback: re.compile(r"\b(?:hatchback\w*|hecbek\w*|hatch\b|hb\b)"),
-    # "kombi"/"combi" is the common Turkish name for a station wagon.
-    BodyType.wagon: re.compile(
-        r"\b(?:station\s*(?:wagon|vagon)\w*|wagon\w*|estate\b|sw\b|kombi\w*|combi\w*)"
-    ),
+    # English spellings only. "kombi" is deliberately NOT an alias: in Turkish it is
+    # also a boiler, so it would give false positives.
+    BodyType.wagon: re.compile(r"\b(?:station\s*wagon\w*|wagon\w*|estate\b|sw\b)"),
     BodyType.mpv: re.compile(r"\b(?:mpv\b|mini\s*van\w*)"),
 }
 
