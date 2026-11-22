@@ -18,8 +18,17 @@ from __future__ import annotations
 import re
 import unicodedata
 from decimal import Decimal
+from enum import Enum
+from typing import TypeVar
 
-from app.schemas.preference import PreferenceDraft, TextExtractionResult
+from app.schemas.preference import (
+    BodyType,
+    FuelType,
+    PreferenceDraft,
+    TextExtractionResult,
+)
+
+_E = TypeVar("_E", bound=Enum)
 
 # ---------------------------------------------------------------------------
 # Constants — normalisation and language detection
@@ -403,24 +412,79 @@ def parse_transmission(norm: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# Fuel types and body types
+# ---------------------------------------------------------------------------
+#
+# Every mention becomes one list entry, in order of first appearance, without
+# duplicates. A negated mention ("dizel olmasin", "no diesel") is simply not added.
+# Terms use a word-start match plus suffix tolerance (``\w*``) so "benzinliyi" and
+# "SUV'u" are found; very short abbreviations are matched as whole words only.
+
+_FUEL_TERMS: dict[FuelType, re.Pattern[str]] = {
+    FuelType.petrol: re.compile(r"\b(?:benzin\w*|petrol\w*|gasoline\w*)"),
+    FuelType.diesel: re.compile(r"\b(?:dizel\w*|diesel\w*|mazot\w*)"),
+    FuelType.hybrid: re.compile(r"\b(?:hibrit\w*|hybrid\w*)"),
+    FuelType.electric: re.compile(r"\b(?:elektrik\w*|electric\w*)"),
+}
+# "ev" means "house" in Turkish ("ev icin araba"), so it only counts as "electric
+# vehicle" when the text is detected as English.
+_EV_RE = re.compile(r"\bevs?\b")
+# "hibrit elektrik" / "hybrid electric" is ONE fuel type (hybrid), not two.
+_HYBRID_ELECTRIC_RE = re.compile(r"\b(hibrit|hybrid)\s+(?:elektrik\w*|electric\w*)")
+
+_BODY_TERMS: dict[BodyType, re.Pattern[str]] = {
+    BodyType.suv: re.compile(r"\bsuv\w*"),
+    BodyType.sedan: re.compile(r"\bsedan\w*"),
+    BodyType.hatchback: re.compile(r"\b(?:hatchback\w*|hecbek\w*|hatch\b|hb\b)"),
+    BodyType.wagon: re.compile(r"\b(?:station\s*(?:wagon|vagon)\w*|wagon\w*|estate\b|sw\b)"),
+    BodyType.mpv: re.compile(r"\b(?:mpv\b|mini\s*van\w*)"),
+}
+
+
+def _collect_enums(
+    norm: str,
+    terms: dict[_E, re.Pattern[str]],
+    extra: list[tuple[_E, re.Pattern[str]]],
+) -> list[_E]:
+    """Return enum members mentioned positively, ordered by first appearance."""
+    first_seen: dict[_E, int] = {}
+    for member, pattern in [*terms.items(), *extra]:
+        for pos, negated in _classify_matches(norm, pattern, list_aware=True):
+            if not negated and pos < first_seen.get(member, pos + 1):
+                first_seen[member] = pos
+    return sorted(first_seen, key=first_seen.__getitem__)
+
+
+def parse_fuel_types(norm: str, language: str) -> list[FuelType]:
+    """Return the fuel types mentioned in ``norm`` (``language`` enables the "ev" term)."""
+    norm = _HYBRID_ELECTRIC_RE.sub(r"\1", norm)
+    extra = [(FuelType.electric, _EV_RE)] if language == "en" else []
+    return _collect_enums(norm, _FUEL_TERMS, extra)
+
+
+def parse_body_types(norm: str) -> list[BodyType]:
+    """Return the body types mentioned in ``norm``."""
+    return _collect_enums(norm, _BODY_TERMS, [])
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
-
-# TODO(T13 stage 2): match the electric-vehicle abbreviation "ev" only when the
-# detected language is "en". In Turkish "ev" means "house" ("ev icin araba"), so
-# matching it there would give false positives.
 
 
 def _build_draft(text: str) -> PreferenceDraft:
     if not isinstance(text, str):
         return PreferenceDraft()
     norm = normalize_text(text)
+    language = detect_language(text)
     budget_min, budget_max = parse_budget(norm)
     fields: dict[str, object] = {
-        "language": detect_language(text),
+        "language": language,
         "budget_min_try": budget_min,
         "budget_max_try": budget_max,
         "transmission": parse_transmission(norm),
+        "fuel_types": parse_fuel_types(norm, language),
+        "body_types": parse_body_types(norm),
     }
     return PreferenceDraft(**fields)
 
