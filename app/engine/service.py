@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from app.engine.filters import evaluate_hard_filters
 from app.engine.scoring import score_and_rank_vehicles

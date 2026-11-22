@@ -8,7 +8,6 @@ from app.engine.scoring import (
     _get_equivalent_consumption,
     _normalize_higher_is_better,
     _normalize_lower_is_better,
-    calculate_vehicle_sub_scores,
     calculate_vehicle_total_score,
     compute_catalogue_bounds,
     score_and_rank_vehicles,
