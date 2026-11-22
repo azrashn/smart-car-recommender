@@ -26,6 +26,7 @@ from app.schemas.preference import (
     FuelType,
     PreferenceDraft,
     TextExtractionResult,
+    UsageType,
 )
 
 _E = TypeVar("_E", bound=Enum)
@@ -222,25 +223,28 @@ def _multiplier_of(raw: str | None) -> int | None:
     return _THOUSAND
 
 
-def _to_int(num: str, mult: int | None, currency: bool) -> int | None:
-    """Turn the digits ``num`` into a TRY amount, or ``None`` when not a plausible price."""
-    seps = re.findall(r"[.,]", num)
+def _numeric_value(num: str, mult: int | None) -> int | None:
+    """Read the digits ``num`` (with optional unit ``mult``) as a whole number."""
     if mult is not None:
         # With a unit a single separator is the decimal point: "1,5 milyon", "1.2M".
-        if len(seps) > 1:
+        if len(re.findall(r"[.,]", num)) > 1:
             return None
-        value = Decimal(num.replace(",", "."))
-        amount = int(value * mult)
-    else:
-        # Without a unit separators must be thousands groups: "1.500.000".
-        if re.fullmatch(r"\d{1,3}(?:[.,]\d{3})+", num):
-            amount = int(re.sub(r"[.,]", "", num))
-        elif num.isdigit():
-            amount = int(num)
-        else:
-            return None
-        if not currency and amount < _BARE_MIN:
-            return None
+        return int(Decimal(num.replace(",", ".")) * mult)
+    # Without a unit separators must be thousands groups: "1.500.000".
+    if re.fullmatch(r"\d{1,3}(?:[.,]\d{3})+", num):
+        return int(re.sub(r"[.,]", "", num))
+    if num.isdigit():
+        return int(num)
+    return None
+
+
+def _to_int(num: str, mult: int | None, currency: bool) -> int | None:
+    """Turn the digits ``num`` into a TRY amount, or ``None`` when not a plausible price."""
+    amount = _numeric_value(num, mult)
+    if amount is None:
+        return None
+    if mult is None and not currency and amount < _BARE_MIN:
+        return None
     if not _BUDGET_FLOOR <= amount <= _BUDGET_CEILING:
         return None
     return amount
@@ -468,6 +472,109 @@ def parse_body_types(norm: str) -> list[BodyType]:
 
 
 # ---------------------------------------------------------------------------
+# Usage type
+# ---------------------------------------------------------------------------
+#
+# city:    "sehir ici", "sehirde", "city", "urban"
+# highway: "uzun yol", "otoyol", "highway", "sehir disi", "sehirlerarasi"
+# mixed:   "karisik", "mixed", or city AND highway mentioned together
+# family:  "aile", "family"
+# "family" together with a driving context ("aile icin, sehir ici") is ambiguous
+# for a single-valued field, so nothing is guessed and the field stays empty.
+
+_USAGE_TERMS: dict[UsageType, re.Pattern[str]] = {
+    # "sehir" must not be "sehirler(arasi)" (intercity) or "sehir disi" (outside city).
+    UsageType.city: re.compile(r"\b(?:sehir(?!ler)(?!\s*disi)\w*|city\b|urban\b)"),
+    UsageType.highway: re.compile(
+        r"\b(?:uzun\s+yol\w*|otoyol\w*|highway\w*|motorway\w*|freeway\w*"
+        r"|sehir\s*disi\w*|sehirler\s*arasi\w*|intercity|long[\s-]+(?:distance|trips?"
+        r"|drives?|journeys?|roads?))"
+    ),
+    UsageType.mixed: re.compile(r"\b(?:karisik\w*|karma\b|mixed\b)"),
+    UsageType.family: re.compile(r"\b(?:aile\w*|famil(?:y|ies)\b)"),
+}
+
+
+def parse_usage_type(norm: str) -> UsageType | None:
+    """Return the usage type described in ``norm``, or ``None`` when unclear."""
+    present = {
+        usage
+        for usage, pattern in _USAGE_TERMS.items()
+        if any(not neg for _, neg in _classify_matches(norm, pattern))
+    }
+    if UsageType.mixed in present:
+        return UsageType.mixed
+    driving = present & {UsageType.city, UsageType.highway}
+    if UsageType.family in present:
+        return None if driving else UsageType.family
+    if len(driving) == 2:
+        return UsageType.mixed
+    return next(iter(driving), None)
+
+
+# ---------------------------------------------------------------------------
+# Minimum seats
+# ---------------------------------------------------------------------------
+# "7 kisilik", "7 koltuk", "7-seater", "at least 5 seats", "yedi kisilik".
+# The first mention inside the schema range (2-9) wins.
+
+_SEAT_WORDS = {
+    "iki": 2, "uc": 3, "dort": 4, "bes": 5, "alti": 6, "yedi": 7, "sekiz": 8, "dokuz": 9,
+    "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+}  # fmt: skip
+_SEATS_RE = re.compile(
+    r"(?<![a-z\d.,])(\d{1,2}|" + "|".join(_SEAT_WORDS) + r")\s*-?\s*"
+    r"(?:kisilik|koltuk\w*|seater|seats?\b|passengers?\b|people\b|kisi\b)"
+)
+
+
+def parse_min_seats(norm: str) -> int | None:
+    """Return the required seat count mentioned in ``norm`` (2-9), or ``None``."""
+    for m in _SEATS_RE.finditer(norm):
+        token = m.group(1)
+        seats = _SEAT_WORDS.get(token) or int(token)
+        if _MIN_SEATS <= seats <= _MAX_SEATS:
+            return seats
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Annual kilometres
+# ---------------------------------------------------------------------------
+# A "<number> km" counts as yearly mileage only with a per-year word next to it:
+# "yilda 20 bin km", "20.000 km/yil", "15k km a year", "20000 km per year".
+# A plain "150.000 km yapmis" (odometer) is NOT annual mileage.
+
+_MIN_SEATS, _MAX_SEATS = 2, 9
+_MIN_ANNUAL_KM, _MAX_ANNUAL_KM = 1_000, 200_000  # same limits as PreferenceDraft
+
+_KM_AFTER_RE = re.compile(r"^\s*(?:km\b|kilometres?\b|kilometers?\b)")
+_PER_YEAR_BEFORE_RE = re.compile(
+    r"\b(?:yilda|yillik|yearly|annual\w*|per\s+year|a\s+year|each\s+year"
+    r"|every\s+year|her\s+yil|sene\w*)\b[^,.]{0,25}$"
+)
+_PER_YEAR_AFTER_RE = re.compile(
+    r"^\s*(?:(?:per|a|each|every)\s+)?(?:yil\w*|year\w*|yr\b|annual\w*|sene\w*)"
+)
+
+
+def parse_annual_km(norm: str) -> int | None:
+    """Return yearly mileage in km mentioned in ``norm``, or ``None``."""
+    for m in _NUMBER_RE.finditer(norm):
+        km = _KM_AFTER_RE.match(norm[m.end() :])
+        if km is None:
+            continue
+        value = _numeric_value(m.group("num"), _multiplier_of(m.group("mult")))
+        if value is None or not _MIN_ANNUAL_KM <= value <= _MAX_ANNUAL_KM:
+            continue
+        before = norm[max(0, m.start() - 40) : m.start()]
+        after = norm[m.end() + km.end() :]
+        if _PER_YEAR_BEFORE_RE.search(before) or _PER_YEAR_AFTER_RE.match(after):
+            return value
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -485,6 +592,9 @@ def _build_draft(text: str) -> PreferenceDraft:
         "transmission": parse_transmission(norm),
         "fuel_types": parse_fuel_types(norm, language),
         "body_types": parse_body_types(norm),
+        "usage_type": parse_usage_type(norm),
+        "min_seats": parse_min_seats(norm),
+        "annual_km": parse_annual_km(norm),
     }
     return PreferenceDraft(**fields)
 
