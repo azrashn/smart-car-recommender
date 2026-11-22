@@ -369,6 +369,9 @@ def test_ev_abbreviation_only_counts_in_english():
         ("station wagon", ["wagon"]),
         ("SW", ["wagon"]),
         ("estate", ["wagon"]),
+        ("kombi", ["wagon"]),
+        ("Kombi araba arıyorum", ["wagon"]),
+        ("combi", ["wagon"]),
         ("mpv", ["mpv"]),
         ("minivan", ["mpv"]),
         ("sedan veya SUV", ["sedan", "suv"]),
@@ -405,8 +408,17 @@ def test_usage_type(text, expected):
     assert usage(text) == expected
 
 
-def test_usage_family_with_driving_context_is_not_guessed():
-    assert usage("aile için şehir içi") is None
+@pytest.mark.parametrize(
+    "text",
+    [
+        "aile için şehir içi",
+        "şehir içi ve uzun yol ama aile aracı olsun",
+        "karışık kullanım, ailecek gideceğiz",
+        "family car for long highway trips",
+    ],
+)
+def test_usage_family_wins_over_other_usage_words(text):
+    assert usage(text) == "family"
 
 
 def test_usage_none_when_not_mentioned():

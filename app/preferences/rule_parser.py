@@ -400,6 +400,9 @@ def _term_polarity(norm: str, pattern: re.Pattern[str]) -> tuple[bool, bool]:
     return any(not neg for _, neg in matches), any(neg for _, neg in matches)
 
 
+# NOTE: unlike fuel/body types, transmission negation is NOT list-aware. In a mixed
+# sentence such as "dizel ve otomatik olmasin" the negation is not spread over the
+# conjunction. Accepted limitation for now; revisit if real inputs need it.
 def parse_transmission(norm: str) -> str | None:
     """Return ``"automatic"``, ``"manual"`` or ``None`` (no/unclear preference)."""
     if _TRANSMISSION_INDIFFERENT_RE.search(norm):
@@ -440,7 +443,10 @@ _BODY_TERMS: dict[BodyType, re.Pattern[str]] = {
     BodyType.suv: re.compile(r"\bsuv\w*"),
     BodyType.sedan: re.compile(r"\bsedan\w*"),
     BodyType.hatchback: re.compile(r"\b(?:hatchback\w*|hecbek\w*|hatch\b|hb\b)"),
-    BodyType.wagon: re.compile(r"\b(?:station\s*(?:wagon|vagon)\w*|wagon\w*|estate\b|sw\b)"),
+    # "kombi"/"combi" is the common Turkish name for a station wagon.
+    BodyType.wagon: re.compile(
+        r"\b(?:station\s*(?:wagon|vagon)\w*|wagon\w*|estate\b|sw\b|kombi\w*|combi\w*)"
+    ),
     BodyType.mpv: re.compile(r"\b(?:mpv\b|mini\s*van\w*)"),
 }
 
@@ -479,8 +485,8 @@ def parse_body_types(norm: str) -> list[BodyType]:
 # highway: "uzun yol", "otoyol", "highway", "sehir disi", "sehirlerarasi"
 # mixed:   "karisik", "mixed", or city AND highway mentioned together
 # family:  "aile", "family"
-# "family" together with a driving context ("aile icin, sehir ici") is ambiguous
-# for a single-valued field, so nothing is guessed and the field stays empty.
+# usage_type holds one value, so when "aile"/"family" appears it wins over every
+# other usage wording ("aile icin, sehir ici" -> family).
 
 _USAGE_TERMS: dict[UsageType, re.Pattern[str]] = {
     # "sehir" must not be "sehirler(arasi)" (intercity) or "sehir disi" (outside city).
@@ -502,11 +508,11 @@ def parse_usage_type(norm: str) -> UsageType | None:
         for usage, pattern in _USAGE_TERMS.items()
         if any(not neg for _, neg in _classify_matches(norm, pattern))
     }
+    if UsageType.family in present:
+        return UsageType.family  # family wins over any other usage wording
     if UsageType.mixed in present:
         return UsageType.mixed
     driving = present & {UsageType.city, UsageType.highway}
-    if UsageType.family in present:
-        return None if driving else UsageType.family
     if len(driving) == 2:
         return UsageType.mixed
     return next(iter(driving), None)
