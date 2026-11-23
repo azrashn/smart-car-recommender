@@ -10,9 +10,14 @@
  *
  * Labels carry data-i18n="nav.*"; the Turkish strings below are only the
  * fallback shown until i18n.js (T15) replaces them from tr.json / en.json.
+ * On mobile (<= 600px) the links collapse behind the "nav.menu" button; the
+ * CSS in base.css hides them while the button has aria-expanded="false".
  */
 (function () {
   "use strict";
+
+  var LINKS_ID = "siteNavLinks";
+  var LANGUAGE_ID = "navLanguage";
 
   var NAV_ITEMS = [
     { href: "index.html", key: "nav.home", fallback: "Ana sayfa" },
@@ -23,8 +28,12 @@
     { href: "scenario.html", key: "nav.scenario", fallback: "Scenario Lab" }
   ];
 
-  // Language codes, identical in every language.
-  var LANGUAGES = ["tr", "en"];
+  // Language names are written in their own language (endonyms), so they are
+  // the same in every UI language and are not translated.
+  var LANGUAGES = [
+    { code: "tr", name: "Türkçe" },
+    { code: "en", name: "English" }
+  ];
 
   function currentPage() {
     var path = window.location.pathname;
@@ -43,45 +52,12 @@
     return link;
   }
 
-  function createLanguageSwitcher() {
-    var item = document.createElement("li");
-    var label = document.createElement("span");
-    var activeLang = (document.documentElement.lang || "tr").toLowerCase();
-
-    label.id = "navLanguageLabel";
-    label.setAttribute("data-i18n", "nav.language");
-    label.textContent = "Dil";
-    item.setAttribute("role", "group");
-    item.setAttribute("aria-labelledby", label.id);
-    item.appendChild(label);
-
-    LANGUAGES.forEach(function (lang) {
-      var button = document.createElement("button");
-      var isActive = lang === activeLang;
-      button.type = "button";
-      button.lang = lang;
-      button.setAttribute("data-lang", lang);
-      button.setAttribute("aria-pressed", String(isActive));
-      button.className = "btn " + (isActive ? "btn-primary" : "btn-secondary");
-      button.textContent = lang.toUpperCase();
-      // TODO(T15): i18n.js switches the language here (load tr.json / en.json,
-      // update data-i18n texts, <html lang> and aria-pressed).
-      item.appendChild(document.createTextNode(" "));
-      item.appendChild(button);
-    });
-
-    return item;
-  }
-
-  function buildNav() {
+  function createLinkList() {
     var page = currentPage();
-    var nav = document.createElement("nav");
     var list = document.createElement("ul");
-
-    nav.className = "site-nav";
-    nav.appendChild(createLink("index.html", "nav.brand", "AutoMatch", "nav-brand"));
-
+    list.id = LINKS_ID;
     list.className = "nav-links";
+
     NAV_ITEMS.forEach(function (navItem) {
       var item = document.createElement("li");
       var link = createLink(navItem.href, navItem.key, navItem.fallback);
@@ -92,9 +68,82 @@
       item.appendChild(link);
       list.appendChild(item);
     });
-    list.appendChild(createLanguageSwitcher());
+    return list;
+  }
 
-    nav.appendChild(list);
+  function createLanguageSelect() {
+    var wrapper = document.createElement("div");
+    var label = document.createElement("label");
+    var select = document.createElement("select");
+    var htmlLang = (document.documentElement.lang || "").toLowerCase().slice(0, 2);
+
+    wrapper.className = "nav-language";
+    label.className = "visually-hidden";
+    label.htmlFor = LANGUAGE_ID;
+    label.setAttribute("data-i18n", "nav.language");
+    label.textContent = "Dil";
+
+    select.id = LANGUAGE_ID;
+    select.className = "nav-language-select";
+    LANGUAGES.forEach(function (language) {
+      var option = document.createElement("option");
+      option.value = language.code;
+      option.lang = language.code;
+      option.textContent = language.name;
+      select.appendChild(option);
+    });
+    select.value = htmlLang === "en" ? "en" : "tr";
+
+    // TODO(T15): i18n.js handles the "change" event (load tr.json / en.json,
+    // update data-i18n texts and <html lang>). Until then it does nothing.
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(select);
+    return wrapper;
+  }
+
+  function createMenuToggle() {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn btn-secondary nav-toggle";
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-controls", LINKS_ID);
+    button.setAttribute("data-i18n", "nav.menu");
+    button.textContent = "Menü";
+    return button;
+  }
+
+  function setExpanded(button, expanded) {
+    button.setAttribute("aria-expanded", String(expanded));
+  }
+
+  function bindMenuToggle(button) {
+    button.addEventListener("click", function () {
+      setExpanded(button, button.getAttribute("aria-expanded") !== "true");
+    });
+
+    document.addEventListener("keydown", function (event) {
+      var isOpen = button.getAttribute("aria-expanded") === "true";
+      // offsetParent is null when the button is hidden (desktop layout).
+      if (event.key === "Escape" && isOpen && button.offsetParent !== null) {
+        setExpanded(button, false);
+        button.focus();
+      }
+    });
+  }
+
+  function buildNav() {
+    var nav = document.createElement("nav");
+    var toggle = createMenuToggle();
+
+    // DOM order: brand, toggle, links, language. The toggle sits right before
+    // the list it controls; CSS reorders the mobile top row visually.
+    nav.className = "site-nav";
+    nav.appendChild(createLink("index.html", "nav.brand", "AutoMatch", "nav-brand"));
+    nav.appendChild(toggle);
+    nav.appendChild(createLinkList());
+    nav.appendChild(createLanguageSelect());
+    bindMenuToggle(toggle);
     return nav;
   }
 

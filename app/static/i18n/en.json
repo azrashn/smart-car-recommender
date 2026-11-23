@@ -7,7 +7,8 @@
     "catalog": "Catalog",
     "compare": "Compare",
     "scenario": "Scenario Lab",
-    "language": "Language"
+    "language": "Language",
+    "menu": "Menu"
   },
   "index": {
     "title": "AutoMatch",
