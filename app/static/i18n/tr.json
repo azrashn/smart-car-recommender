@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "brand": "AutoMatch",
+    "home": "Ana sayfa",
+    "survey": "Anket",
+    "results": "Sonuçlar",
+    "catalog": "Katalog",
+    "compare": "Karşılaştır",
+    "scenario": "Scenario Lab",
+    "language": "Dil"
+  },
+  "index": {
+    "title": "AutoMatch",
+    "subtitle": "İhtiyacınıza uyan aracı, neden uyduğunu görerek bulun.",
+    "startSurvey": "Ankete başla",
+    "browseCatalog": "Kataloğa göz at",
+    "features": {
+      "1": {
+        "title": "Gerekçeli öneriler",
+        "desc": "Her aracın neden önerildiğini güçlü ve zayıf yönleriyle birlikte görürsünüz."
+      },
+      "2": {
+        "title": "Scenario Lab",
+        "desc": "Yıllık km, yakıt fiyatı ya da önceliklerinizi değiştirin; sıralama yeniden hesaplanır."
+      },
+      "3": {
+        "title": "Şeffaf veri",
+        "desc": "Her araçta verinin kaynağı ve son kontrol tarihi yer alır."
+      }
+    }
+  }
+}

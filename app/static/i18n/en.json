@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "brand": "AutoMatch",
+    "home": "Home",
+    "survey": "Survey",
+    "results": "Results",
+    "catalog": "Catalog",
+    "compare": "Compare",
+    "scenario": "Scenario Lab",
+    "language": "Language"
+  },
+  "index": {
+    "title": "AutoMatch",
+    "subtitle": "Find the car that fits your needs, and see why it fits.",
+    "startSurvey": "Start the survey",
+    "browseCatalog": "Browse the catalog",
+    "features": {
+      "1": {
+        "title": "Explained recommendations",
+        "desc": "See why each car was recommended, along with its strengths and weaknesses."
+      },
+      "2": {
+        "title": "Scenario Lab",
+        "desc": "Change annual mileage, fuel price or your priorities; the ranking is recalculated."
+      },
+      "3": {
+        "title": "Transparent data",
+        "desc": "Every car shows its data source and the date it was last checked."
+      }
+    }
+  }
+}
