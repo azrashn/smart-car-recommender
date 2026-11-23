@@ -161,3 +161,39 @@ If a criterion's data is missing (e.g., Euro NCAP stars is `None`):
 1. That sub-score is excluded (`None`).
 2. Its corresponding weight $w_i$ is removed from **both numerator and denominator**.
 3. The vehicle is scored purely on its available metrics without being penalized.
+4. Unknown values are also **excluded from bound computation** (`compute_catalogue_bounds`). For example, a vehicle with an empty `trunk_l` is not counted as `0 L` when computing the `interior_space` min/max.
+
+### 6.3 Normalization Bounds Come From the Full Catalogue
+
+Min-max bounds are computed from the **entire catalogue**, not from the filtered candidate list. Otherwise a vehicle's score would change depending on the user's filters (e.g. if only one vehicle survives, every sub-score becomes 100).
+
+```python
+from app.engine.scoring import compute_catalogue_bounds, score_and_rank_vehicles
+
+bounds = compute_catalogue_bounds(all_vehicles)          # once, full catalogue
+ranked = score_and_rank_vehicles(filtered, weights, custom_bounds=bounds)
+# or: score_and_rank_vehicles(filtered, weights, catalogue=all_vehicles)
+```
+
+If neither `custom_bounds` nor `catalogue` is given, `vehicles` itself is treated as the full catalogue.
+
+### 6.4 Weights Validation
+
+Weights must be integers in `{1, 2, 3}`. Any other value (`0`, negative, `> 3`, floats, booleans, strings) raises `ValueError`. Unspecified criteria default to `2` (medium).
+
+### 6.5 Electric Consumption Conversion (Design Decision — pending team approval)
+
+> [!IMPORTANT]
+> This is a design decision and needs explicit team approval before merge.
+
+To compare electric and combustion vehicles on a single **Fuel Economy** axis, electric consumption is converted into a petrol-litre equivalent by **energy content**:
+
+$$\text{L}_{eq}/100\text{km} = \frac{\text{kWh}/100\text{km}}{8.9}$$
+
+**Rationale:** 1 L of petrol contains ≈ 8.9 kWh of chemical energy (≈ 32 MJ/L lower heating value). The conversion therefore compares how much *energy* each vehicle consumes per 100 km, using only data present in the catalogue (`consumption_kwh_100km`, `consumption_l_100km`) with no price or tariff assumptions.
+
+**Consequence:** Because electric drivetrains are ~3× more energy-efficient than combustion engines, EVs land at ≈ 1.7–2.2 L_eq/100km while the best hybrids are ≈ 4.5 L/100km. EVs will therefore almost always receive a Fuel Economy sub-score close to 100 (normalized ≈ 1.0). This is intentional under energy-efficiency semantics.
+
+**Alternatives considered (not implemented):**
+- *Cost-based equivalence* (TRY/100km using fuel and electricity prices) — closer to what users feel, but depends on volatile prices; the cost module (`app/cost/`) already covers running cost separately.
+- *Separate normalization per powertrain* — avoids EV dominance but makes cross-powertrain scores incomparable.

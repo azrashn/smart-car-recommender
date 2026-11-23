@@ -4,7 +4,10 @@ Bu modül, sert kısıt filtrelerinden (T21) geçen araçları kullanıcının
 önceliklerine göre 0–100 arasında puanlar ve en uygun araçları sıralar.
 
 Temel Prensipler:
-1. Min-Max Normalizasyonu: Değerler katalog aralığına göre 0.0 – 1.0 arasına çekilir.
+1. Min-Max Normalizasyonu: Değerler TAM katalog aralığına göre 0.0 – 1.0 arasına çekilir.
+   - Sınırlar filtrelenmiş listeden DEĞİL, tüm katalogdan hesaplanır; böylece bir aracın
+     puanı kullanıcının filtrelerine göre değişmez (bkz. ``score_and_rank_vehicles``).
+   - Bilinmeyen (eksik) değerler sınır hesabına hiç girmez (NFR-04).
    - Tüketim ve Fiyat için: Düşük olan daha iyi (ters oranlı).
    - İç Hacim, Güç ve Güvenlik için: Yüksek olan daha iyi (doğru orantılı).
 2. Ağırlıklı Ortalama:
@@ -13,12 +16,33 @@ Temel Prensipler:
 3. Eksik Veri Yönetimi (NFR-04):
    - Eksik veri tahmin edilmez.
    - Verisi eksik olan kriter (örn. Euro NCAP testi olmayan araç),
-     hem paydan hem de toplam paydadan çıkarılır. Böylece araç haksız yere cezalandırılmaz.
+     pay ve paydadan çıkarılır. Böylece araç haksız yere cezalandırılmaz.
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+CRITERIA: Tuple[str, ...] = (
+    "fuel_economy",
+    "interior_space",
+    "performance",
+    "budget_fit",
+    "safety",
+)
+MIN_WEIGHT = 1
+MAX_WEIGHT = 3
+DEFAULT_WEIGHT = 2
+
+
+def _validate_weights(weights: Dict[str, Any]) -> None:
+    """Ağırlıkların 1–3 aralığında tam sayı olduğunu doğrular; değilse ValueError fırlatır."""
+    for criterion, w in weights.items():
+        if isinstance(w, bool) or not isinstance(w, int) or not (MIN_WEIGHT <= w <= MAX_WEIGHT):
+            raise ValueError(
+                f"'{criterion}' için geçersiz ağırlık: {w!r}. "
+                f"Ağırlık {MIN_WEIGHT}–{MAX_WEIGHT} arasında tam sayı olmalıdır."
+            )
 
 
 # ==============================================================================
@@ -94,7 +118,11 @@ def _normalize_lower_is_better(val: float, min_val: float, max_val: float) -> fl
 def compute_catalogue_bounds(vehicles: Sequence[Any]) -> Dict[str, Tuple[float, float]]:
     """Araç havuzundaki kriterlerin min ve max sınırlarını belirler.
     
-    Normalizasyon işlemi bu sınır değerlerine göre yapılır.
+    Normalizasyon işlemi bu sınır değerlerine göre yapılır. Bu fonksiyon TAM
+    katalogla çağrılmalıdır (filtrelenmiş liste ile değil).
+
+    Bilinmeyen değerler (örn. ``trunk_l`` boş) ilgili kriterin sınır hesabına
+    hiç dahil edilmez (NFR-04); 0 ya da varsayılan değer olarak sayılmaz.
     """
     consumptions: List[float] = []
     prices: List[float] = []
@@ -118,11 +146,13 @@ def compute_catalogue_bounds(vehicles: Sequence[Any]) -> Dict[str, Tuple[float, 
             powers.append(hp)
 
         # 4. İç Hacim (Bagaj + Koltuk Katsayısı)
-        trunk = _to_float(_get_val(v, "trunk_l")) or 0.0
-        seats = _to_float(_get_val(v, "seats")) or 5.0
-        # 1 koltuk yaklaşık 50 Litre hacim değerinde kombine edilir
-        combined_space = trunk + (seats * 50.0)
-        spaces.append(combined_space)
+        # Bagajı bilinmeyen araç sınır hesabına girmez (NFR-04). Aksi halde
+        # eksik bagaj 0 sayılır ve minimum yapay olarak yalnızca koltuk payına düşer.
+        trunk = _to_float(_get_val(v, "trunk_l"))
+        if trunk is not None:
+            seats = _to_float(_get_val(v, "seats")) or 5.0
+            # 1 koltuk yaklaşık 50 Litre hacim değerinde kombine edilir
+            spaces.append(trunk + (seats * 50.0))
 
     # Güvenli varsayılanlar (tek araç olması veya boş olması durumunda sıfıra bölünmeyi önler)
     return {
@@ -203,16 +233,19 @@ def calculate_vehicle_total_score(
 ) -> float:
     """Verisi mevcut kriterler üzerinden ağırlıklı genel skoru (0–100) hesaplar.
     
-    Kural (NFR-04): Verisi eksik (None) olan kriter hem paydan hem paydadan düşülür!
+    Kural (NFR-04): Verisi eksik (None) olan kriter pay ve paydadan düşülür.
     Formül: toplam_puan = sum(w_i * s_i) / sum(w_i)
+
+    Ağırlıklar 1–3 arasında tam sayı olmalıdır; aksi halde ValueError fırlatılır.
     """
+    _validate_weights(weights)
     total_weighted_points = 0.0
     total_active_weight = 0
 
     for criterion, score in sub_scores.items():
         if score is not None:
             # Öncelik ağırlığı (Varsayılan 2 - medium)
-            w = weights.get(criterion, 2)
+            w = weights.get(criterion, DEFAULT_WEIGHT)
             total_weighted_points += w * score
             total_active_weight += w
 
@@ -226,14 +259,24 @@ def score_and_rank_vehicles(
     vehicles: Sequence[Any],
     weights: Optional[Dict[str, int]] = None,
     custom_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
+    catalogue: Optional[Sequence[Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Araç listesini puanlar ve en yüksek puandan en düşüğe doğru sıralar.
     
     Parametreler:
-    - vehicles: Puanlanacak araçlar listesi (sözlük veya nesne).
+    - vehicles: Puanlanacak (filtrelerden geçmiş) araçlar listesi (sözlük veya nesne).
     - weights: Kriterlerin ağırlıkları (Örn: {"fuel_economy": 3, "budget_fit": 2}).
                Verilmezse tüm kriterlerin ağırlığı eşit (2) kabul edilir.
-    - custom_bounds: İsteğe bağlı katalog sınırları. Verilmezse liste içinden hesaplanır.
+               1–3 dışındaki değerler (0, negatif, >3) ValueError fırlatır.
+    - custom_bounds: Önceden hesaplanmış katalog sınırları
+                     (``compute_catalogue_bounds(tum_katalog)``). Öncelikli kullanılır.
+    - catalogue: Tam araç kataloğu. ``custom_bounds`` verilmemişse sınırlar
+                 bundan hesaplanır.
+
+    Normalizasyon sınırları TAM katalogdan gelmelidir; aksi halde puanlar
+    filtre sonucuna göre değişir (örn. tek araç kalınca tüm alt puanlar 100 olur).
+    ``custom_bounds`` ve ``catalogue`` ikisi de verilmezse ``vehicles`` tam
+    katalog kabul edilir ve sınırlar ondan hesaplanır.
     
     Dönüş:
     Her araç için sıralanmış liste:
@@ -255,17 +298,17 @@ def score_and_rank_vehicles(
     if not vehicles:
         return []
 
-    active_weights = {
-        "fuel_economy": 2,
-        "interior_space": 2,
-        "performance": 2,
-        "budget_fit": 2,
-        "safety": 2,
-    }
+    active_weights = dict.fromkeys(CRITERIA, DEFAULT_WEIGHT)
     if weights:
+        _validate_weights(weights)
         active_weights.update(weights)
 
-    bounds = custom_bounds or compute_catalogue_bounds(vehicles)
+    if custom_bounds is not None:
+        bounds = custom_bounds
+    elif catalogue is not None:
+        bounds = compute_catalogue_bounds(catalogue)
+    else:
+        bounds = compute_catalogue_bounds(vehicles)
 
     scored_items: List[Dict[str, Any]] = []
     for vehicle in vehicles:

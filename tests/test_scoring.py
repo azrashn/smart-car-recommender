@@ -123,6 +123,49 @@ class TestWeightedScoringEngine(unittest.TestCase):
             self.assertIn("performance", breakdown)
             self.assertIn("safety", breakdown)
 
+    def test_bounds_come_from_catalogue_not_filtered_list(self):
+        """Scores must not depend on which vehicles survived the filters."""
+        bounds = compute_catalogue_bounds(self.vehicles)
+        corolla = next(v for v in self.vehicles if v["model"] == "Corolla")
+
+        full = score_and_rank_vehicles(self.vehicles, custom_bounds=bounds)
+        full_corolla = next(i for i in full if i["vehicle"]["model"] == "Corolla")
+
+        # Only one vehicle left after filtering: with catalogue bounds its
+        # sub-scores must stay the same (not all 100).
+        single = score_and_rank_vehicles([corolla], custom_bounds=bounds)
+        self.assertEqual(single[0]["sub_scores"], full_corolla["sub_scores"])
+        self.assertEqual(single[0]["score"], full_corolla["score"])
+        self.assertNotEqual(single[0]["sub_scores"]["performance"], 100.0)
+
+        # Passing the catalogue directly gives the same result.
+        via_catalogue = score_and_rank_vehicles([corolla], catalogue=self.vehicles)
+        self.assertEqual(via_catalogue[0]["sub_scores"], full_corolla["sub_scores"])
+
+    def test_unknown_trunk_excluded_from_space_bounds(self):
+        """NFR-04: a vehicle with unknown trunk_l must not affect space bounds."""
+        known = [
+            {"trunk_l": 400, "seats": 5},
+            {"trunk_l": 600, "seats": 5},
+        ]
+        unknown = {"trunk_l": "", "seats": 5}
+        self.assertEqual(compute_catalogue_bounds(known)["space"], (650.0, 850.0))
+        self.assertEqual(compute_catalogue_bounds(known + [unknown])["space"], (650.0, 850.0))
+        none_trunk = {"trunk_l": None, "seats": 5}
+        self.assertEqual(compute_catalogue_bounds(known + [none_trunk])["space"], (650.0, 850.0))
+
+    def test_invalid_weights_rejected(self):
+        """Weights outside 1–3 (0, negative, >3, non-int) raise ValueError."""
+        scores = {"fuel_economy": 80.0, "safety": 60.0}
+        for bad in (0, -1, 4, 2.5, True, "3"):
+            with self.subTest(weight=bad):
+                with self.assertRaises(ValueError):
+                    calculate_vehicle_total_score(scores, {"fuel_economy": bad})
+                with self.assertRaises(ValueError):
+                    score_and_rank_vehicles(self.vehicles, weights={"fuel_economy": bad})
+        for good in (1, 2, 3):
+            calculate_vehicle_total_score(scores, {"fuel_economy": good})
+
 
 if __name__ == "__main__":
     unittest.main()
