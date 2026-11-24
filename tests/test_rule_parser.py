@@ -499,3 +499,250 @@ def test_stage2_full_english_sentence():
     assert pref.annual_km == 20_000
     assert pref.budget_max_try == 2_000_000
     assert result.missing_fields == []
+
+
+# ---------------------------------------------------------------------------
+# Stage 3 — priorities
+# ---------------------------------------------------------------------------
+
+
+def prios(text: str) -> dict[str, str]:
+    p = parse_preferences_text(text).preference.priorities
+    return {k: getattr(p, k).value for k in p.weights()}
+
+
+@pytest.mark.parametrize(
+    ("text", "key"),
+    [
+        ("az yakan bir araç", "fuel_economy"),
+        ("yakıt tasarrufu önemli", "fuel_economy"),
+        ("ekonomik olsun", "fuel_economy"),
+        ("fuel efficient car", "fuel_economy"),
+        ("geniş ve ferah", "interior_space"),
+        ("bagajı büyük olsun", "interior_space"),
+        ("a spacious car", "interior_space"),
+        ("güçlü motor", "performance"),
+        ("hızlı bir araba", "performance"),
+        ("performans istiyorum", "performance"),
+        ("I want something powerful", "performance"),
+        ("güvenli olsun", "safety"),
+        ("güvenlik önemli", "safety"),
+        ("a safe car", "safety"),
+        ("ucuz bir araç", "budget_fit"),
+        ("uygun fiyatlı", "budget_fit"),
+        ("bütçe dostu", "budget_fit"),
+        ("something affordable", "budget_fit"),
+    ],
+)
+def test_priority_high(text, key):
+    result = prios(text)
+    assert result.pop(key) == "high"
+    assert set(result.values()) == {"medium"}
+
+
+@pytest.mark.parametrize(
+    ("text", "key"),
+    [
+        ("performans önemli değil", "performance"),
+        ("bagaj umurumda değil", "interior_space"),
+        ("yakıt tasarrufu fark etmez", "fuel_economy"),
+        ("güvenlik çok önemli değil", "safety"),
+        ("I don't care about performance", "performance"),
+        ("fuel economy doesn't matter", "fuel_economy"),
+        ("safety is not important", "safety"),
+    ],
+)
+def test_priority_low(text, key):
+    result = prios(text)
+    assert result.pop(key) == "low"
+    assert set(result.values()) == {"medium"}
+
+
+def test_unmentioned_priorities_stay_medium():
+    assert set(prios("otomatik SUV 1,5 milyon").values()) == {"medium"}
+
+
+def test_priority_indifference_does_not_leak_across_clauses():
+    result = prios("güvenli olsun, bagaj önemli değil")
+    assert result["safety"] == "high"
+    assert result["interior_space"] == "low"
+
+
+def test_priority_list_shares_indifference():
+    assert prios("güçlü ve hızlı önemli değil")["performance"] == "low"
+
+
+def test_priority_last_mention_wins():
+    assert prios("güçlü olsun ama performans önemli değil")["performance"] == "low"
+
+
+def test_ekonomik_is_fuel_economy_not_budget():
+    result = prios("ekonomik bir araç")
+    assert result["fuel_economy"] == "high"
+    assert result["budget_fit"] == "medium"
+
+
+def test_ucuz_sets_priority_but_no_budget_number():
+    pref = parse_preferences_text("ucuz bir araç").preference
+    assert pref.priorities.budget_fit.value == "high"
+    assert (pref.budget_min_try, pref.budget_max_try) == (None, None)
+
+
+def test_priority_unrelated_words_do_not_match():
+    assert prios("hizmet aracı")["performance"] == "medium"
+    assert prios("unsafe roads")["safety"] == "medium"
+
+
+# ---------------------------------------------------------------------------
+# Stage 3 — full sentences, end to end
+# ---------------------------------------------------------------------------
+
+
+def _check(text, *, budget_max=None, budget_min=None, trans=None, fuel=(), body=(),
+           use=None, seat=None, km=None, high=(), low=(), lang=None):  # fmt: skip
+    r = parse_preferences_text(text)
+    p = r.preference
+    assert p.budget_max_try == budget_max
+    assert p.budget_min_try == budget_min
+    assert p.transmission == trans
+    assert [f.value for f in p.fuel_types] == list(fuel)
+    assert [b.value for b in p.body_types] == list(body)
+    assert (p.usage_type.value if p.usage_type else None) == use
+    assert p.min_seats == seat
+    assert p.annual_km == km
+    levels = {k: getattr(p.priorities, k).value for k in p.priorities.weights()}
+    for k in high:
+        assert levels.pop(k) == "high"
+    for k in low:
+        assert levels.pop(k) == "low"
+    assert set(levels.values()) <= {"medium"}
+    if lang:
+        assert p.language == lang
+    assert r.method == "rule"
+
+
+def test_e2e_tr_example_from_spec():
+    _check(
+        "1,5 milyona kadar otomatik, az yakan, 7 kişilik bir aile arabası arıyorum; "
+        "performans önemli değil",
+        budget_max=1_500_000, trans="automatic", use="family", seat=7,
+        high=["fuel_economy"], low=["performance"], lang="tr",
+    )  # fmt: skip
+
+
+def test_e2e_tr_city_hybrid():
+    _check(
+        "Şehir içinde kullanacağım, hibrit, güvenli ve ekonomik bir hatchback, en fazla 1,2 milyon",
+        budget_max=1_200_000, fuel=["hybrid"], body=["hatchback"], use="city",
+        high=["safety", "fuel_economy"],
+    )  # fmt: skip
+
+
+def test_e2e_tr_big_family_suv():
+    _check(
+        "Geniş ve ferah bir SUV istiyorum, 7 kişilik, dizel olsun, bütçem 2 milyon",
+        budget_max=2_000_000, fuel=["diesel"], body=["suv"], seat=7, high=["interior_space"],
+    )  # fmt: skip
+
+
+def test_e2e_tr_range_and_performance():
+    _check(
+        "1-1,5 milyon arası güçlü ve hızlı bir sedan, manuel olmasın",
+        budget_min=1_000_000, budget_max=1_500_000, trans="automatic", body=["sedan"],
+        high=["performance"],
+    )  # fmt: skip
+
+
+def test_e2e_tr_cheap_manual():
+    _check(
+        "Ucuz, manuel vitesli, benzinli bir araba arıyorum, 800 bin TL",
+        budget_max=800_000, trans="manual", fuel=["petrol"], high=["budget_fit"],
+    )  # fmt: skip
+
+
+def test_e2e_tr_highway_with_km():
+    _check(
+        "Uzun yol yapıyorum, yılda 30 bin km, dizel, güvenlik çok önemli, bütçem 1,8 milyon",
+        budget_max=1_800_000, fuel=["diesel"], use="highway", km=30_000, high=["safety"],
+    )  # fmt: skip
+
+
+def test_e2e_tr_indifferent_to_space_and_fuel():
+    _check(
+        "Otomatik, güçlü bir araç olsun, bagaj önemli değil, yakıt tasarrufu umurumda değil, "
+        "en fazla 3 milyon",
+        budget_max=3_000_000, trans="automatic", high=["performance"],
+        low=["interior_space", "fuel_economy"],
+    )  # fmt: skip
+
+
+def test_e2e_tr_min_budget_and_space():
+    _check(
+        "En az 900 bin, minivan, 8 kişilik, bagajı geniş olsun",
+        budget_min=900_000, body=["mpv"], seat=8, high=["interior_space"],
+    )  # fmt: skip
+
+
+def test_e2e_tr_electric_mixed():
+    _check(
+        "Elektrikli, karışık kullanım, güvenli, uygun fiyatlı, en fazla 2,5 milyon",
+        budget_max=2_500_000, fuel=["electric"], use="mixed", high=["safety", "budget_fit"],
+    )  # fmt: skip
+
+
+def test_e2e_tr_uppercase_and_no_diacritics():
+    _check(
+        "OTOMATIK, SEHIR ICI, AZ YAKAN, BUTCE DOSTU, 1.200.000 TL'YE KADAR",
+        budget_max=1_200_000, trans="automatic", use="city",
+        high=["fuel_economy", "budget_fit"],
+    )  # fmt: skip
+
+
+def test_e2e_en_family_suv():
+    _check(
+        "I'm looking for a spacious automatic SUV for my family, 7 seats, under 2 million",
+        budget_max=2_000_000, trans="automatic", body=["suv"], use="family", seat=7,
+        high=["interior_space"], lang="en",
+    )  # fmt: skip
+
+
+def test_e2e_en_efficient_hybrid():
+    _check(
+        "I want a fuel efficient hybrid hatchback for city driving, up to 1.5 million",
+        budget_max=1_500_000, fuel=["hybrid"], body=["hatchback"], use="city",
+        high=["fuel_economy"], lang="en",
+    )  # fmt: skip
+
+
+def test_e2e_en_powerful_dont_care_fuel():
+    _check(
+        "Something powerful and fast, I don't care about fuel economy, between 1 and 2 million",
+        budget_min=1_000_000, budget_max=2_000_000, high=["performance"],
+        low=["fuel_economy"], lang="en",
+    )  # fmt: skip
+
+
+def test_e2e_en_safe_affordable():
+    _check(
+        "I need a safe and affordable petrol sedan, no manual, at most 900k",
+        budget_max=900_000, trans="automatic", fuel=["petrol"], body=["sedan"],
+        high=["safety", "budget_fit"], lang="en",
+    )  # fmt: skip
+
+
+def test_e2e_en_long_trips_km():
+    _check(
+        "I want a diesel wagon for long highway trips, about 25k km a year, "
+        "safety is important, luggage space doesn't matter, under 2.2 million",
+        budget_max=2_200_000, fuel=["diesel"], body=["wagon"], use="highway", km=25_000,
+        high=["safety"], low=["interior_space"], lang="en",
+    )  # fmt: skip
+
+
+def test_e2e_en_ev():
+    _check(
+        "I want an EV, cheap to run, at least 5 seats, performance is not important, "
+        "at most 2 million",
+        budget_max=2_000_000, fuel=["electric"], seat=5, high=["budget_fit"],
+        low=["performance"], lang="en",
+    )  # fmt: skip
