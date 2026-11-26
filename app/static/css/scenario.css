@@ -1,0 +1,52 @@
+/* Scenario Lab (T51). Uses the shared variables from base.css. */
+
+.scenario-main { padding-block: var(--space-5); }
+.scenario-title { margin: 0 0 var(--space-2); font-size: var(--font-size-xl); }
+.scenario-lead { margin: 0 0 var(--space-4); color: var(--color-text-muted); }
+.scenario-subtitle { margin: var(--space-4) 0 var(--space-2); font-size: var(--font-size-base); }
+
+#scenarioApp { display: grid; gap: var(--space-4); }
+
+.slider-row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr minmax(10rem, 13rem);
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.slider-row .form-label { margin: 0; }
+.slider-row input[type="range"] { width: 100%; accent-color: var(--color-primary); }
+.slider-row output { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+
+.before-after { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
+
+.rank-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.rank-item {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.rank-no { font-weight: 700; color: var(--color-text-muted); }
+.rank-name { font-weight: 600; }
+.rank-meta { display: block; font-size: var(--font-size-sm); color: var(--color-text-muted); }
+
+.badge { font-size: var(--font-size-sm); font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 999px; white-space: nowrap; }
+.badge-up { color: var(--color-success); background: var(--color-success-bg); }
+.badge-down { color: var(--color-danger); background: var(--color-danger-bg); }
+.badge-same { color: var(--color-text-muted); background: var(--color-hover-bg); }
+.badge-new { color: var(--color-warning-text); background: var(--color-warning-bg); }
+
+.rank-empty { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+
+@media (max-width: 700px) {
+  .slider-row { grid-template-columns: 1fr; gap: var(--space-1); }
+  .slider-row output { text-align: left; }
+  .before-after { grid-template-columns: 1fr; }
+}
+
+/* `display` rules above must not override the HTML `hidden` attribute. */
+[hidden] { display: none !important; }
