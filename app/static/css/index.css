@@ -1,0 +1,47 @@
+/* AutoMatch - home page (T60). Loaded after base.css; uses its tokens only. */
+
+.hero {
+  text-align: center;
+  padding: var(--space-5) 0;
+}
+
+.hero-title {
+  margin: 0 0 var(--space-2);
+  font-size: calc(var(--font-size-xl) * 1.5);
+  color: var(--color-primary);
+}
+
+.hero-subtitle {
+  margin: 0 auto var(--space-4);
+  max-width: 36rem;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-muted);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.feature-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+}
+
+.feature-list .card-subtitle {
+  margin-bottom: 0;
+}
+
+@media (max-width: 600px) {
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .feature-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
