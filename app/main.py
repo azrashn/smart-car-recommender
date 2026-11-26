@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from app import __version__
 from app.config import STATIC_DIR, get_settings
 from app.engine.router import router as engine_router
+from app.scenarios.router import router as scenarios_router
 
 
 class HealthResponse(BaseModel):
@@ -53,7 +54,7 @@ def create_app() -> FastAPI:
     # application.include_router(preferences_router)   # M2  T12  /api/preferences
     application.include_router(engine_router)          # M3  T25  /api/recommendations
     # application.include_router(compare_router)       # M5  T42  /api/compare
-    # application.include_router(scenarios_router)     # M6  T50  /api/scenarios
+    application.include_router(scenarios_router)       # M6  T50  /api/scenarios
 
     # The static frontend is mounted LAST, because "/" matches every path and
     # would otherwise hide the API routes registered above.
