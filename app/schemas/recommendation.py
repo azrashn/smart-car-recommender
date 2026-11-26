@@ -7,17 +7,32 @@ shared across M3, M4 (AI explanations), M5 (results UI & comparison), and M6 (Sc
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
 class ScoreBreakdown(BaseModel):
-    """Normalized sub-scores (0-100) for each evaluation criterion."""
+    """Normalized sub-scores (0-100) for each evaluation criterion.
 
-    fuel_economy: float = Field(..., ge=0, le=100, description="Fuel/energy efficiency score")
-    interior_space: float = Field(..., ge=0, le=100, description="Luggage capacity and seating score")
-    performance: float = Field(..., ge=0, le=100, description="Engine power score")
-    budget_fit: float = Field(..., ge=0, le=100, description="Affordability within budget score")
-    safety: Optional[float] = Field(None, ge=0, le=100, description="Euro NCAP safety rating score")
+    Per NFR-04, criteria whose underlying vehicle data is missing are ``None``
+    rather than guessed or displayed as ``0.0``.
+    """
+
+    fuel_economy: Optional[float] = Field(
+        None, ge=0, le=100, description="Fuel/energy efficiency score (None if data missing)"
+    )
+    interior_space: Optional[float] = Field(
+        None, ge=0, le=100, description="Luggage capacity and seating score (None if data missing)"
+    )
+    performance: Optional[float] = Field(
+        None, ge=0, le=100, description="Engine power score (None if data missing)"
+    )
+    budget_fit: Optional[float] = Field(
+        None, ge=0, le=100, description="Affordability within budget score (None if data missing)"
+    )
+    safety: Optional[float] = Field(
+        None, ge=0, le=100, description="Euro NCAP safety rating score (None if not tested)"
+    )
 
 
 class RecommendationItem(BaseModel):

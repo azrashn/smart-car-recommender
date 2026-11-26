@@ -197,3 +197,23 @@ $$\text{L}_{eq}/100\text{km} = \frac{\text{kWh}/100\text{km}}{8.9}$$
 **Alternatives considered (not implemented):**
 - *Cost-based equivalence* (TRY/100km using fuel and electricity prices) — closer to what users feel, but depends on volatile prices; the cost module (`app/cost/`) already covers running cost separately.
 - *Separate normalization per powertrain* — avoids EV dominance but makes cross-powertrain scores incomparable.
+
+---
+
+## 7. Recommendation Generation & API Integration (T25)
+
+The recommendation pipeline runs end-to-end via `POST /api/recommendations`:
+
+1. **Input Parsing:** Receives `Preference` data (budget, transmission, fuel types, body types, seat requirement, and priorities).
+2. **Hard Filtering:** Runs `evaluate_hard_filters` (`app/engine/filters.py`) using `preference.hard_filter_criteria()`.
+3. **Empty Match Handling (Conflict):** If 0 vehicles pass:
+   - Computes which criteria eliminated vehicles.
+   - Evaluates targeted relaxations (e.g. minimum budget needed for the cheapest vehicle matching other criteria, relaxing fuel type, transmission, body type, or seats).
+   - Returns a structured `ConflictReport` with actionable `RelaxationSuggestion` items.
+4. **Weighted Scoring & Ranking:** If vehicles match:
+   - Normalizes and calculates weighted scores (`app/engine/scoring.py`) using full catalogue bounds (`compute_catalogue_bounds`).
+   - Sorts candidate vehicles in descending score order.
+   - Takes top 5 recommendations.
+   - Extracts deterministic `strengths` and `weaknesses` tags.
+   - Adds template explanation (fallback for when AI is disabled).
+   - Returns a `RecommendationResult` containing up to 5 ranked `RecommendationItem` objects.
