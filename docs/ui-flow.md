@@ -322,6 +322,7 @@ Aktif sayfa menüde vurgulanır. Dil seçimi `tr.json` / `en.json` arasında ge�
 
 - **Sonuç kartındaki yıllık maliyetin kaynağı:** `POST /api/recommendations` yanıtı mı, `/api/compare` mı: TBD.
 - **Yakıt ve elektrik fiyatı varsayılanları:** Varsayılan değerlerin nerede tutulacağı (config mi, istek mi): TBD.
+- **Ağırlık 0 ("Hiç"):** 3.6'daki sürgü 0-3 ölçeğini gösteriyor, ancak `Priority` yalnızca `low/medium/high` (1-3) kabul ediyor ve skorlama 1-3 dışındaki ağırlıkları reddediyor. T51 şimdilik 1-3 sürgüsü kullanıyor; 0 için şema ve skorlama kararı gerekir (Azra, karya-karya, Fatih).
 - **Kesin alt anahtar adları:** Hangi alt anahtar adlarının (ör. `results.card.*`) kesin olduğu: Fatih (T15).
 
 ## CSS değişkenleri ve ortak bileşenler (T43)
