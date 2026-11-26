@@ -254,7 +254,7 @@ Unknown extra fields are **rejected** (`extra="forbid"`).
 
 ### Response `200 OK`
 
-The endpoint echoes back the validated and normalised `Preference` object.
+The endpoint echoes back the validated and normalised `Preference` object; normalisation only removes duplicate values from `fuel_types` and `body_types` (first occurrence order is kept).
 
 ```json
 {
