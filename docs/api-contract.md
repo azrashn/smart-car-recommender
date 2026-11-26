@@ -624,7 +624,8 @@ Designed for Scenario Lab live sliders (T41, T42).
 |---|---|---|
 | `preference` | Preference | Base preference (from form or text endpoint) |
 | `overrides.annual_km` | integer | Override annual mileage for cost recalculation |
-| `overrides.fuel_price_try` | number (> 0) | Petrol price in TRY/litre. Hybrid uses it as-is; diesel keeps its default ratio to petrol. Electricity price is not affected. |
+| `overrides.fuel_price_try` | number (> 0) | Petrol price in TRY/litre. Hybrid uses it as-is; diesel keeps its default ratio to petrol. |
+| `overrides.electricity_price_try` | number (> 0) | Electricity price in TRY/kWh (electric cars). |
 | `overrides.priorities` | object | Partial priority override; unset keys keep base values |
 
 All `overrides` fields are optional. `annual_km` is 1 000 – 200 000. If neither

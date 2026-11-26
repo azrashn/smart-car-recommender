@@ -41,8 +41,11 @@ class ScenarioOverrides(BaseModel):
         le=1_000,
         description=(
             "Petrol price in TRY per litre. Hybrid cars use it as-is, diesel keeps its "
-            "default ratio to petrol. Electricity price is not affected."
+            "default ratio to petrol."
         ),
+    )
+    electricity_price_try: Optional[float] = Field(
+        None, gt=0, le=1_000, description="Electricity price in TRY per kWh (electric cars)."
     )
     priorities: Optional[PriorityOverrides] = Field(
         None, description="Partial priority override; unset keys keep the base value."

@@ -39,14 +39,19 @@ def merge_priorities(base: ScoringPriorities, override) -> ScoringPriorities:
     return base.model_copy(update=changes)
 
 
-def build_prices(fuel_price_try: Optional[float]) -> EnergyPrices:
+def build_prices(
+    fuel_price_try: Optional[float],
+    electricity_price_try: Optional[float] = None,
+) -> EnergyPrices:
     """Energy prices for the scenario. A petrol override scales diesel by the default ratio."""
     petrol = fuel_price_try if fuel_price_try is not None else DEFAULT_PETROL_PER_L
     diesel = petrol * (DEFAULT_DIESEL_PER_L / DEFAULT_PETROL_PER_L)
     return EnergyPrices(
         petrol_per_l=petrol,
         diesel_per_l=diesel,
-        electricity_per_kwh=DEFAULT_ELECTRICITY_PER_KWH,
+        electricity_per_kwh=(
+            electricity_price_try if electricity_price_try is not None else DEFAULT_ELECTRICITY_PER_KWH
+        ),
     )
 
 
@@ -85,7 +90,7 @@ def run_scenario(
     )
 
     annual_km = overrides.annual_km or base_pref.annual_km or DEFAULT_ANNUAL_KM
-    prices = build_prices(overrides.fuel_price_try)
+    prices = build_prices(overrides.fuel_price_try, overrides.electricity_price_try)
 
     items = []
     for rec in scenario.recommendations:

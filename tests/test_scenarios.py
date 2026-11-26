@@ -53,6 +53,7 @@ def test_build_prices_defaults_and_diesel_ratio():
     doubled = build_prices(2 * DEFAULT_PETROL_PER_L)
     assert doubled.diesel_per_l == pytest.approx(2 * DEFAULT_DIESEL_PER_L)
     assert doubled.electricity_per_kwh == default.electricity_per_kwh
+    assert build_prices(None, 12.0).electricity_per_kwh == 12.0
 
 
 def test_empty_overrides_reproduce_the_base_ranking():
@@ -100,6 +101,21 @@ def test_fuel_price_override_changes_petrol_cost_but_not_electric():
             )
 
 
+def test_electricity_price_override_changes_only_electric_cost():
+    base = _by_id(_run(overrides={"annual_km": 20_000}))
+    pricey = _by_id(_run(overrides={"annual_km": 20_000, "electricity_price_try": 17.0}))
+    checked = 0
+    for vid, item in base.items():
+        if vid not in pricey or item.estimated_annual_cost_try is None:
+            continue
+        if item.fuel_type == "electric":
+            assert pricey[vid].estimated_annual_cost_try == pytest.approx(2 * item.estimated_annual_cost_try, rel=1e-3)
+            checked += 1
+        else:
+            assert pricey[vid].estimated_annual_cost_try == item.estimated_annual_cost_try
+    assert checked >= 1
+
+
 def test_rank_change_is_base_rank_minus_rank():
     result = _run(overrides={"priorities": {"performance": "high", "fuel_economy": "low"}})
     for item in result.recommendations:
@@ -136,6 +152,7 @@ def test_api_works_without_overrides():
         {"preference": BASE, "overrides": {"annual_km": 500_000}},
         {"preference": BASE, "overrides": {"fuel_price_try": 0}},
         {"preference": BASE, "overrides": {"fuel_price_try": -3}},
+        {"preference": BASE, "overrides": {"electricity_price_try": 0}},
         {"preference": BASE, "overrides": {"priorities": {"safety": "extreme"}}},
         {"preference": BASE, "overrides": {"unknown": 1}},
         {"preference": {"budget_max_try": -1}},
