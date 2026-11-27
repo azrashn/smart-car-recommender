@@ -29,5 +29,42 @@
         "desc": "Every car shows its data source and the date it was last checked."
       }
     }
+  },
+  "results": {
+    "title": "Results",
+    "subtitle": "The top 5 cars for your preferences",
+    "loading": "Loading recommendations...",
+    "error": "Recommendations could not be loaded. Please try again.",
+    "retry": "Try again",
+    "totalMatches": "Cars matching your criteria:",
+    "rank": "Rank",
+    "score": "Score:",
+    "price": "Price:",
+    "strengths": "Strengths",
+    "weaknesses": "Weaknesses",
+    "explanation": "Explanation",
+    "annualCost": "Estimated annual energy cost:",
+    "noData": "no data",
+    "samplePrice": "sample price",
+    "compareSelect": "Compare",
+    "compareButton": "Compare selected",
+    "compareHint": "Select 2 or 3 cars to compare.",
+    "compareMax": "You can select up to 3 cars.",
+    "tryScenario": "Try a scenario",
+    "breakdown": {
+      "fuelEconomy": "Fuel economy",
+      "interiorSpace": "Interior space",
+      "performance": "Performance",
+      "budgetFit": "Price advantage",
+      "safety": "Safety"
+    },
+    "conflict": {
+      "title": "No cars match your criteria",
+      "reason": "Reason",
+      "constraints": "Blocking constraints",
+      "suggestions": "Relaxation suggestions",
+      "unlocks": "Additional cars unlocked:",
+      "editPreferences": "Edit preferences"
+    }
   }
 }

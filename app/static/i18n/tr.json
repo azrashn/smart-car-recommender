@@ -29,5 +29,42 @@
         "desc": "Her araçta verinin kaynağı ve son kontrol tarihi yer alır."
       }
     }
+  },
+  "results": {
+    "title": "Sonuçlar",
+    "subtitle": "Tercihlerinize en uygun ilk 5 araç",
+    "loading": "Öneriler yükleniyor...",
+    "error": "Öneriler alınamadı. Lütfen tekrar deneyin.",
+    "retry": "Tekrar dene",
+    "totalMatches": "Kriterlerinize uyan araç sayısı:",
+    "rank": "Sıra",
+    "score": "Skor:",
+    "price": "Fiyat:",
+    "strengths": "Güçlü yönler",
+    "weaknesses": "Zayıf yönler",
+    "explanation": "Açıklama",
+    "annualCost": "Yıllık tahmini enerji maliyeti:",
+    "noData": "veri yok",
+    "samplePrice": "örnek fiyat",
+    "compareSelect": "Karşılaştır",
+    "compareButton": "Seçilenleri karşılaştır",
+    "compareHint": "Karşılaştırmak için 2 veya 3 araç seçin.",
+    "compareMax": "En fazla 3 araç seçebilirsiniz.",
+    "tryScenario": "Senaryo dene",
+    "breakdown": {
+      "fuelEconomy": "Yakıt ekonomisi",
+      "interiorSpace": "İç hacim",
+      "performance": "Performans",
+      "budgetFit": "Fiyat avantajı",
+      "safety": "Güvenlik"
+    },
+    "conflict": {
+      "title": "Kriterlerinize uyan araç bulunamadı",
+      "reason": "Neden",
+      "constraints": "Engelleyen kısıtlar",
+      "suggestions": "Esnetme önerileri",
+      "unlocks": "Açılacak ek araç sayısı:",
+      "editPreferences": "Tercihleri düzenle"
+    }
   }
 }
