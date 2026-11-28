@@ -504,73 +504,147 @@ The engine reads:
 
 **Owner:** @SudeKarakoc1 (M5)
 
-> [!NOTE]
-> DRAFT – M5 owner (@SudeKarakoc1) to confirm fields and cost calculation details.
-
-Returns a side-by-side comparison of 2–3 vehicles with estimated annual costs.
+Returns a side-by-side comparison of 2–3 vehicles with their estimated annual energy cost
+(FR-10, FR-11). Vehicles are returned in the same order as in `ids`.
 
 ### Query parameters
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `ids` | string | **Yes** | Comma-separated vehicle IDs, e.g. `1,2,3` (2–3 IDs) |
-| `annual_km` | integer | No | Used for fuel cost estimate; default 15 000 |
-| `fuel_price_try` | number | No | Fuel price per litre/kWh in TRY; default from config |
+| `ids` | string | **Yes** | Comma-separated vehicle IDs, e.g. `1,2,3` (2–3 IDs). Spaces are allowed (`1, 2`). |
+| `annual_km` | integer | No | Annual distance in km; default `15000`, allowed `0`–`1000000`. `0` is valid and gives a cost of `0`. |
+| `petrol_price_try` | number | No | Petrol price in TRY per litre (also used for hybrids); `0`–`10000`; default from `app/cost/defaults.py` |
+| `diesel_price_try` | number | No | Diesel price in TRY per litre; `0`–`10000`; default from `app/cost/defaults.py` |
+| `electricity_price_try` | number | No | Electricity price in TRY per kWh; `0`–`10000`; default from `app/cost/defaults.py` |
 
-### Response `200 OK` — DRAFT
+### Error rules
+
+| Case | Status |
+|---|---|
+| `ids` missing | `422` (FastAPI default format, see §2) |
+| 1 ID, or 4 or more IDs | `422` |
+| Duplicate ID (e.g. `1,1`) | `422` |
+| Invalid ID format: empty item (`1,,2`), non-integer (`1,abc`), ID < 1 (`0,1`, `-1,2`) | `422` |
+| `annual_km` or a price outside its allowed range | `422` (FastAPI default format, see §2) |
+| One or more IDs not in the catalogue | `404` |
+
+There is **no silent truncation**: extra IDs are an error, never dropped.
+
+### Response `200 OK` — `CompareResponse`
 
 ```json
 {
   "vehicles": [
     {
-      "id": 3,
-      "brand": "Toyota",
-      "model": "Corolla",
-      "variant": "1.8 Hybrid Dream",
-      "price_try": 1820000,
-      "fuel_type": "hybrid",
-      "transmission": "automatic",
-      "consumption_l_100km": 4.5,
-      "power_hp": 140,
-      "seats": 5,
-      "trunk_l": 471,
-      "euro_ncap_stars": 5,
-      "estimated_annual_cost_try": 31500.0
-    },
-    {
-      "id": 5,
-      "brand": "Peugeot",
-      "model": "2008",
-      "variant": "1.2 PureTech Allure",
-      "price_try": 1750000,
+      "id": 2,
+      "brand": "Hyundai",
+      "model": "i20",
+      "variant": "1.0 T-GDI 90 PS 7DCT Jump",
+      "year": 2026,
+      "body_type": "hatchback",
       "fuel_type": "petrol",
       "transmission": "automatic",
-      "consumption_l_100km": 5.9,
+      "price_try": 1759000,
+      "price_checked_at": "2026-11-19",
+      "consumption_l_100km": 6.3,
+      "consumption_kwh_100km": null,
+      "power_hp": 90,
+      "seats": 5,
+      "trunk_l": 352,
+      "euro_ncap_stars": 4,
+      "spec_source_url": "https://www.hyundai.com/...",
+      "price_source_url": "https://www.hyundai.com/tr/tr/satis/fiyat-listesi.html",
+      "annual_cost_try": 64666
+    },
+    {
+      "id": 4,
+      "brand": "Opel",
+      "model": "Astra",
+      "variant": "1.5 130 HP Dizel AT8 Edition",
+      "year": 2026,
+      "body_type": "hatchback",
+      "fuel_type": "diesel",
+      "transmission": "automatic",
+      "price_try": 2350000,
+      "price_checked_at": "2026-11-19",
+      "consumption_l_100km": 4.9,
+      "consumption_kwh_100km": null,
       "power_hp": 130,
       "seats": 5,
-      "trunk_l": 434,
-      "euro_ncap_stars": 4,
-      "estimated_annual_cost_try": 41300.0
+      "trunk_l": null,
+      "euro_ncap_stars": null,
+      "spec_source_url": "https://www.opel.com.tr/...",
+      "price_source_url": "https://fiyatlisteleri.opel.com.tr/tum-araclar",
+      "annual_cost_try": 62181
     }
   ],
-  "annual_km_used": 15000,
-  "fuel_price_try_used": 47.0
+  "differences": {
+    "price_try": [2],
+    "annual_cost_try": [4],
+    "power_hp": [4],
+    "trunk_l": [],
+    "seats": [],
+    "euro_ncap_stars": []
+  },
+  "assumptions": {
+    "annual_km": 15000,
+    "petrol_price_try": 68.43,
+    "diesel_price_try": 84.6,
+    "electricity_price_try": 9.95,
+    "prices_checked_at": "2026-11-27"
+  }
+}
+```
+
+**Notes**
+
+- `annual_cost_try = annual_km / 100 × consumption × unit price`, rounded half up to an
+  integer TRY. Electric vehicles use `consumption_kwh_100km` and the electricity price;
+  all others use `consumption_l_100km`. Units are never converted.
+- Hybrids use the **petrol** price.
+- If a vehicle has no consumption value, `annual_cost_try` is `null` (never `0`, NFR-04),
+  even when `annual_km` is `0`.
+- `differences` maps a field name to the IDs of the vehicles with the best value. It only
+  contains unit-independent fields: lower is better for `price_try` and `annual_cost_try`;
+  higher is better for `power_hp`, `trunk_l`, `seats` and `euro_ncap_stars`. Consumption
+  fields are **not** compared (L/100 km and kWh/100 km are different units).
+- In `differences`, vehicles with a `null` value are skipped. The list is empty when fewer
+  than two vehicles have a value or when all values are equal. On a tie for the best value
+  (but not all equal), every tied ID is listed.
+- `assumptions` echoes the inputs actually used. Default prices are example values from
+  `app/cost/defaults.py`; the UI shows them as "example price, checked on
+  `prices_checked_at`".
+
+### Response `404 Not Found`
+
+```json
+{
+  "detail": "Vehicles not found: [999999]"
 }
 ```
 
 ### Response `422 Unprocessable Entity`
 
-FastAPI default format (see §2):
+Invalid `ids` values return a plain message:
+
+```json
+{
+  "detail": "ids must contain 2 to 3 vehicle IDs."
+}
+```
+
+A missing `ids` parameter or an out-of-range `annual_km` / price uses the FastAPI default
+format (see §2):
 
 ```json
 {
   "detail": [
     {
-      "type": "value_error",
-      "loc": ["query", "ids"],
-      "msg": "Value error, ids must contain 2 to 3 vehicle IDs.",
-      "input": "1,2,3,4",
-      "ctx": {"error": "ids must contain 2 to 3 vehicle IDs."}
+      "type": "greater_than_equal",
+      "loc": ["query", "annual_km"],
+      "msg": "Input should be greater than or equal to 0",
+      "input": "-1",
+      "ctx": {"ge": 0}
     }
   ]
 }
@@ -717,4 +791,7 @@ Helper: `app.schemas.preference.priority_weight(Priority.high)` → `3`
 |---|---|---|---|
 | 1 | `transmission` in Preference is currently a **single value** (`manual`\|`automatic`\|`null`), matching `filter_by_transmission` in `filters.py` which takes a single string. If M3 needs to accept *multiple* transmissions (e.g. `["manual","automatic"]`), the field must change to `list[Literal[...]]`. | M2, M3 | @karya-karya, @fatihoguzkaya |
 | 2 | `POST /api/scenarios` overrides only partial priorities. Should unset priority keys fall back to the base preference, or always to `medium`? | M2, M6 | @azrashn, @fatihoguzkaya |
-| 3 | `GET /api/compare` takes `ids` as a comma-separated query string. Confirm 2–3 vehicle limit and whether a 4th vehicle should return 422 or silently truncate. | M5 | @SudeKarakoc1 |
+
+**Resolved**
+
+- Q3: 2-3 vehicles; 1 or 4+ returns 422, no silent truncation.
