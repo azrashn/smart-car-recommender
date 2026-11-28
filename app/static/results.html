@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="results.title">Sonuçlar</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/results.css">
+</head>
+<body>
+  <header class="site-header" data-site-nav></header>
+
+  <!-- TODO(T15): i18n.js replaces the Turkish fallbacks via data-i18n. -->
+  <main class="container results-page">
+    <h1 id="resultsTitle" class="results-title" data-i18n="results.title">Sonuçlar</h1>
+    <p class="card-subtitle" data-i18n="results.subtitle">Tercihlerinize en uygun ilk 5 araç</p>
+
+    <p id="resultsLoading" class="results-muted" role="status" aria-live="polite" data-i18n="results.loading">Öneriler yükleniyor...</p>
+
+    <div id="resultsError" class="alert-box alert-danger" role="alert" hidden>
+      <p class="results-alert-text" data-i18n="results.error">Öneriler alınamadı. Lütfen tekrar deneyin.</p>
+      <div class="alert-actions">
+        <button type="button" id="retryButton" class="btn btn-secondary" data-i18n="results.retry">Tekrar dene</button>
+      </div>
+    </div>
+
+    <section id="resultsSuccess" aria-labelledby="resultsTitle" hidden>
+      <p class="results-muted"><span data-i18n="results.totalMatches">Kriterlerinize uyan araç sayısı:</span> <strong id="totalMatches"></strong></p>
+      <div id="resultsList" class="results-list"></div>
+      <div class="results-bar">
+        <p id="compareMessage" class="compare-message" role="status" aria-live="polite" data-i18n="results.compareHint">Karşılaştırmak için 2 veya 3 araç seçin.</p>
+        <div class="results-bar-actions">
+          <button type="button" id="compareButton" class="btn btn-primary" disabled data-i18n="results.compareButton">Seçilenleri karşılaştır</button>
+          <a href="scenario.html" class="btn btn-secondary" data-i18n="results.tryScenario">Senaryo dene</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="resultsConflict" class="card" aria-labelledby="conflictTitle" hidden>
+      <h2 id="conflictTitle" class="card-title" data-i18n="results.conflict.title">Kriterlerinize uyan araç bulunamadı</h2>
+      <h3 class="result-section-title" data-i18n="results.conflict.reason">Neden</h3>
+      <p id="conflictReason" class="result-text"></p>
+      <div id="conflictConstraintsBlock" class="result-section">
+        <h3 class="result-section-title" data-i18n="results.conflict.constraints">Engelleyen kısıtlar</h3>
+        <ul id="conflictConstraints" class="result-list"></ul>
+      </div>
+      <div id="conflictSuggestionsBlock" class="result-section">
+        <h3 class="result-section-title" data-i18n="results.conflict.suggestions">Esnetme önerileri</h3>
+        <ul id="conflictSuggestions" class="result-list"></ul>
+      </div>
+      <div id="conflictExplanationBlock" class="result-section">
+        <h3 class="result-section-title" data-i18n="results.explanation">Açıklama</h3>
+        <p id="conflictExplanation" class="result-text"></p>
+      </div>
+      <a href="survey.html" class="btn btn-primary conflict-edit" data-i18n="results.conflict.editPreferences">Tercihleri düzenle</a>
+    </section>
+  </main>
+
+  <script src="js/nav.js"></script>
+  <script src="js/results.js"></script>
+</body>
+</html>
