@@ -583,14 +583,15 @@ FastAPI default format (see §2):
 **Owner:** @azrashn (M6)
 
 > [!NOTE]
-> DRAFT – M6 owner (@azrashn) to confirm. The request body extends `Preference`
-> with scenario-specific overrides; the response mirrors `RecommendationResult`.
+> Implemented in T50 (`app/scenarios/`). The request wraps a base `Preference` with
+> scenario overrides; the response mirrors `RecommendationResult` and adds rank-change
+> fields (`base_rank`, `rank_change`) and the values actually used.
 
 Reruns the recommendation engine with overridden `annual_km`, fuel price,
 and/or priority weights — without re-submitting the full preference form.
-Designed for Scenario Lab live sliders (T41, T42).
+Designed for Scenario Lab live sliders (T50, T51).
 
-### Request body — DRAFT
+### Request body
 
 ```json
 {
@@ -611,6 +612,7 @@ Designed for Scenario Lab live sliders (T41, T42).
   "overrides": {
     "annual_km": 40000,
     "fuel_price_try": 55.0,
+    "electricity_price_try": 8.5,
     "priorities": {
       "fuel_economy": "high",
       "budget_fit": "low"
@@ -622,14 +624,36 @@ Designed for Scenario Lab live sliders (T41, T42).
 | Field | Type | Description |
 |---|---|---|
 | `preference` | Preference | Base preference (from form or text endpoint) |
-| `overrides.annual_km` | integer | Override annual mileage for cost recalculation |
-| `overrides.fuel_price_try` | number | Override fuel price (TRY/litre or TRY/kWh) |
+| `overrides.annual_km` | integer (1 000 – 200 000) | Override annual mileage for cost recalculation |
+| `overrides.fuel_price_try` | number (> 0) | Petrol price in TRY/litre. Hybrid uses it as-is; diesel keeps its default ratio to petrol. |
+| `overrides.electricity_price_try` | number (> 0) | Electricity price in TRY/kWh (electric cars). |
 | `overrides.priorities` | object | Partial priority override; unset keys keep base values |
 
-### Response `200 OK` — `RecommendationResult` — DRAFT
+All `overrides` fields are optional. `annual_km` is 1 000 – 200 000. If neither
+`overrides.annual_km` nor `preference.annual_km` is given, 15 000 km is assumed.
+Defaults: petrol 71.20, diesel 95.20 TRY/L, electricity 8.50 TRY/kWh (see
+`app/scenarios/service.py` for sources and dates). The `*_used` response fields return
+the values that were applied, so a client can initialise its controls from a call with
+empty `overrides`.
 
-Same shape as §7 `RecommendationResult`. Rankings may differ from the
-base recommendation due to the applied overrides.
+`fuel_price_try` is the **petrol** price. Hybrid cars use it as-is; the diesel price is
+derived from it with the default diesel/petrol ratio and returned as `diesel_price_try_used`.
+(There is no separate diesel override; §8 `/api/compare` uses its own price parameters.)
+
+### Response `200 OK` — `RecommendationResult` + rank changes
+
+Same shape as §7 `RecommendationResult`. Rankings may differ from the base recommendation
+because of the priority overrides. `annual_km` and `fuel_price_try` change only the
+`estimated_annual_cost_try` of each item (cost is not part of the score). Extra fields:
+
+| Field | Description |
+|---|---|
+| `recommendations[].base_rank` | Rank in the base run (no overrides); `null` if not in the base top 5 |
+| `recommendations[].rank_change` | `base_rank - rank`; positive = moved up; `null` if `base_rank` is `null` |
+| `annual_km_used`, `fuel_price_try_used`, `diesel_price_try_used`, `electricity_price_try_used` | Values applied to the cost estimate |
+
+If no vehicle passes the hard filters, the response is the same `ConflictReport` as in §7.
+Invalid input (e.g. `annual_km` < 1 000, unknown override key) returns `422`.
 
 ```json
 {
@@ -653,7 +677,9 @@ base recommendation due to the applied overrides.
       "strengths": ["Yüksek yıllık km'de hibrit avantajı"],
       "weaknesses": [],
       "explanation": null,
-      "estimated_annual_cost_try": 63000.0
+      "estimated_annual_cost_try": 63000.0,
+      "base_rank": 2,
+      "rank_change": 1
     }
   ],
   "applied_filters": {
@@ -666,7 +692,11 @@ base recommendation due to the applied overrides.
     "performance": 1,
     "budget_fit": 1,
     "safety": 2
-  }
+  },
+  "annual_km_used": 40000,
+  "fuel_price_try_used": 55.0,
+  "diesel_price_try_used": 73.55,
+  "electricity_price_try_used": 8.5
 }
 ```
 
@@ -716,5 +746,5 @@ Helper: `app.schemas.preference.priority_weight(Priority.high)` → `3`
 | # | Question | Affects | Owner |
 |---|---|---|---|
 | 1 | `transmission` in Preference is currently a **single value** (`manual`\|`automatic`\|`null`), matching `filter_by_transmission` in `filters.py` which takes a single string. If M3 needs to accept *multiple* transmissions (e.g. `["manual","automatic"]`), the field must change to `list[Literal[...]]`. | M2, M3 | @karya-karya, @fatihoguzkaya |
-| 2 | `POST /api/scenarios` overrides only partial priorities. Should unset priority keys fall back to the base preference, or always to `medium`? | M2, M6 | @azrashn, @fatihoguzkaya |
+| 2 | ~~`POST /api/scenarios` partial priorities~~ **Resolved (T50):** unset keys keep the base preference value. | M2, M6 | @azrashn, @fatihoguzkaya |
 | 3 | `GET /api/compare` takes `ids` as a comma-separated query string. Confirm 2–3 vehicle limit and whether a 4th vehicle should return 422 or silently truncate. | M5 | @SudeKarakoc1 |

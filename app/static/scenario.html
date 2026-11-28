@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="scenario.page_title">AutoMatch — Scenario Lab</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/scenario.css">
+</head>
+<body>
+
+  <!-- TODO: T60 (PR #78) ortak menüsü gelince bu blok onunla değiştirilecek -->
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Ana Gezinti">
+      <a href="index.html" class="nav-brand" data-i18n="nav.brand">AutoMatch</a>
+      <ul class="nav-links">
+        <li><a href="index.html" data-i18n="nav.home">Ana Sayfa</a></li>
+        <li><a href="survey.html" data-i18n="nav.survey">Anket</a></li>
+        <li><a href="scenario.html" class="active" aria-current="page" data-i18n="nav.scenario">Scenario Lab</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container scenario-main">
+    <h1 class="scenario-title" data-i18n="scenario.heading">Scenario Lab</h1>
+    <p class="scenario-lead" data-i18n="scenario.lead">Varsayımları değiştirin, sıralamanın nasıl değiştiğini görün.</p>
+
+    <div id="scenarioAlert" class="alert-box" role="alert" aria-live="polite" hidden></div>
+
+    <div id="scenarioApp" hidden>
+      <section class="card scenario-controls" aria-labelledby="assumptionsTitle">
+        <h2 class="card-title" id="assumptionsTitle" data-i18n="scenario.assumptions">Varsayımlar</h2>
+
+        <div class="slider-row">
+          <label class="form-label" for="annualKm" data-i18n="scenario.annual_km">Yıllık km</label>
+          <input type="range" id="annualKm" min="1000" max="200000" step="100">
+          <output id="annualKmOut" for="annualKm"></output>
+        </div>
+        <div class="slider-row">
+          <label class="form-label" for="fuelPrice" data-i18n="scenario.fuel_price">Benzin fiyatı (TL/L)</label>
+          <input type="range" id="fuelPrice" min="40" max="150" step="0.1">
+          <output id="fuelPriceOut" for="fuelPrice"></output>
+        </div>
+        <div class="slider-row">
+          <label class="form-label" for="electricityPrice" data-i18n="scenario.electricity_price">Elektrik fiyatı (TL/kWh)</label>
+          <input type="range" id="electricityPrice" min="1" max="40" step="0.1">
+          <output id="electricityPriceOut" for="electricityPrice"></output>
+        </div>
+        <p class="form-hint" data-i18n="scenario.price_hint">Fiyatlar örnek değerlerdir. Yıl km ve fiyatlar yalnızca yıllık maliyet tahminini değiştirir; sıralama öncelik ağırlıklarından etkilenir.</p>
+
+        <h3 class="scenario-subtitle" data-i18n="scenario.priorities">Öncelik ağırlıkları</h3>
+        <div id="prioritySliders"></div>
+
+        <button type="button" class="btn btn-secondary" id="btnReset" data-i18n="scenario.reset">Sıfırla</button>
+      </section>
+
+      <section class="scenario-results" aria-labelledby="resultsTitle" aria-live="polite" aria-busy="false" id="resultsRegion">
+        <h2 class="card-title" id="resultsTitle" data-i18n="scenario.ranking">Sıralama: önce / sonra</h2>
+        <p id="status" class="form-hint" role="status"></p>
+        <div class="card" id="costChartCard">
+          <h3 class="card-subtitle" data-i18n="scenario.cost_chart">Yıllık maliyet tahmini (TL)</h3>
+          <div id="costChart" class="cost-chart" role="img" aria-label="Yıllık maliyet çubuk grafiği"></div>
+        </div>
+        <div class="before-after">
+          <div class="card" id="beforeCard">
+            <h3 class="card-subtitle" data-i18n="scenario.before">ÖNCE</h3>
+            <ol id="beforeList" class="rank-list"></ol>
+          </div>
+          <div class="card">
+            <h3 class="card-subtitle" data-i18n="scenario.after">SONRA</h3>
+            <ol id="afterList" class="rank-list"></ol>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/scenario.js"></script>
+</body>
+</html>
