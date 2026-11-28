@@ -151,6 +151,26 @@ pytest --cov=app
 ruff check .
 ```
 
+### Maliyet testleri
+
+Yıllık enerji maliyeti (`app/cost/calculator.py`) şu formülle hesaplanır:
+`annual_cost = annual_km / 100 * consumption_per_100km * unit_price`
+(yakıtlı ve hibrit araçlar için L/100 km ve TL/L, elektrikliler için kWh/100 km ve TL/kWh).
+Testler `tests/test_cost.py` dosyasındadır. Belgedeki örneği (12.000 km, 5,2 L/100 km,
+50 TL/L → 31.200 TL) ve gerçek bir katalog satırını (Corolla 1.8 Hybrid Dream) doğrular.
+Test edilen uç durumlar:
+
+- 0, 1, 100 ve 10.000.000 km; sıfır fiyat
+- eksik ya da yanlış birimdeki tüketim → `None`, tahmin yapılmaz (NFR-04)
+- negatif, `nan` ve `inf` girdiler, sıfır tüketim → `ValueError`
+- desteklenmeyen ya da büyük harfli `fuel_type` → `ValueError`
+- determinizm, km'ye göre doğrusallık, yuvarlama yapılmaması, girdilerin değişmemesi
+
+```bash
+pytest tests/test_cost.py -v
+pytest --cov=app/cost --cov-report=term-missing --cov-fail-under=70
+```
+
 <!-- TODO (T56): Test özeti ve docs/test-report.md bağlantısı; ablation sonucu (T37) -->
 
 ## Veri kaynakları

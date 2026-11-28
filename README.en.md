@@ -151,6 +151,26 @@ pytest --cov=app
 ruff check .
 ```
 
+### Cost tests
+
+The annual energy cost (`app/cost/calculator.py`) is computed as
+`annual_cost = annual_km / 100 * consumption_per_100km * unit_price`
+(L/100 km and TRY/L for combustion and hybrid vehicles, kWh/100 km and TRY/kWh for electric).
+The tests live in `tests/test_cost.py`. They check the documented example (12,000 km,
+5.2 L/100 km, 50 TRY/L → 31,200 TRY) and a real catalogue row (Corolla 1.8 Hybrid Dream).
+Edge cases covered:
+
+- 0, 1, 100 and 10,000,000 km; zero price
+- missing or wrong-unit consumption → `None`, never estimated (NFR-04)
+- negative, `nan` and `inf` inputs, zero consumption → `ValueError`
+- unsupported or upper-case `fuel_type` → `ValueError`
+- determinism, linearity in km, no rounding, inputs left unchanged
+
+```bash
+pytest tests/test_cost.py -v
+pytest --cov=app/cost --cov-report=term-missing --cov-fail-under=70
+```
+
 <!-- TODO (T56): test summary, link to docs/test-report.md and ablation result (T37) -->
 
 ## Data sources

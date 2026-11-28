@@ -1,6 +1,9 @@
-"""Tests for the M4 AI layer (T30). No real Gemini requests are made."""
+"""Tests for the M4 AI layer (T30, T33). No real Gemini requests are made."""
 
 from __future__ import annotations
+
+import json
+from pathlib import Path
 
 import pytest
 
@@ -14,7 +17,16 @@ from app.ai import (
     load_ai_settings,
     reset_provider,
 )
+from app.ai.explanation import (
+    MAX_EXPLANATION_CHARS,
+    build_template_explanation,
+    explain_recommendation,
+    explain_recommendations,
+    normalize_language,
+    recommendation_facts,
+)
 from app.ai.gemini import GeminiProvider
+from app.schemas.recommendation import RecommendationResult
 
 AI_ENV_VARS = ("AI_PROVIDER", "GEMINI_API_KEY", "GEMINI_MODEL", "AI_TIMEOUT_SECONDS")
 
@@ -194,3 +206,147 @@ def test_gemini_empty_response_is_an_error(text):
 def test_gemini_requires_key_without_injected_client():
     with pytest.raises(LLMProviderError):
         GeminiProvider(api_key="", model="m", timeout_seconds=1)
+
+
+# --- T33: recommendation explanation -----------------------------------------
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+class FakeProvider:
+    """Stand-in LLMProvider that records prompts and returns a fixed reply."""
+
+    name = "fake"
+
+    def __init__(self, reply="AI explanation.", error=None, available=True):
+        self.reply = reply
+        self.error = error
+        self.available = available
+        self.prompts = []
+
+    @property
+    def is_available(self):
+        return self.available
+
+    def generate(self, prompt, *, system_instruction=None, json_output=False):
+        self.prompts.append(
+            {"prompt": prompt, "system": system_instruction, "json": json_output}
+        )
+        if self.error is not None:
+            raise self.error
+        return self.reply
+
+
+@pytest.fixture
+def sample_result():
+    data = json.loads((FIXTURES / "sample_results.json").read_text(encoding="utf-8"))
+    return RecommendationResult.model_validate(data["recommendation_success"])
+
+
+@pytest.fixture
+def first_item(sample_result):
+    return sample_result.recommendations[0]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("tr", "tr"), ("EN", "en"), ("en-US", "en"), ("de", "tr"), (None, "tr")],
+)
+def test_normalize_language(value, expected):
+    assert normalize_language(value) == expected
+
+
+def test_template_tr_uses_only_real_values(first_item):
+    text = build_template_explanation(first_item, "tr")
+    assert text.startswith("Toyota Corolla, 86/100 puanla 1. sırada.")
+    # Top two sub-scores of the fixture: safety 100, fuel_economy 92.
+    assert "güvenlik (100/100) ve yakıt ekonomisi (92/100)" in text
+    assert first_item.strengths[0] in text
+    assert first_item.weaknesses[0] in text
+
+
+def test_template_en(first_item):
+    text = build_template_explanation(first_item, "en")
+    assert text.startswith("Toyota Corolla ranks #1 with a score of 86/100.")
+    assert "safety (100/100) and fuel economy (92/100)" in text
+
+
+def test_template_skips_missing_safety_and_empty_lists(first_item):
+    item = first_item.model_copy(
+        update={
+            "score_breakdown": first_item.score_breakdown.model_copy(
+                update={"safety": None}
+            ),
+            "strengths": [],
+            "weaknesses": [],
+        }
+    )
+    text = build_template_explanation(item, "tr")
+    assert "güvenlik" not in text
+    assert "Öne çıkan" not in text
+    assert "Dikkat" not in text
+
+
+def test_template_is_deterministic(first_item):
+    assert build_template_explanation(first_item) == build_template_explanation(
+        first_item
+    )
+
+
+def test_none_provider_uses_template(first_item):
+    result = explain_recommendation(first_item, "tr", NoneProvider())
+    assert result.method == "template"
+    assert result.text == build_template_explanation(first_item, "tr")
+
+
+def test_ai_explanation_used_when_available(first_item):
+    provider = FakeProvider(reply="  Corolla is a\n balanced choice.  ")
+    result = explain_recommendation(first_item, "en", provider)
+    assert result.method == "ai"
+    assert result.text == "Corolla is a balanced choice."
+    sent = provider.prompts[0]
+    assert "English" in sent["prompt"]
+    assert "Do not invent" in sent["system"]
+    assert sent["json"] is False
+
+
+def test_prompt_contains_only_engine_facts(first_item):
+    facts = recommendation_facts(first_item)
+    assert "explanation" not in facts
+    assert "estimated_annual_cost_try" not in facts
+    assert facts["score"] == first_item.score
+    provider = FakeProvider()
+    explain_recommendation(first_item, "tr", provider)
+    assert '"score": 86.4' in provider.prompts[0]["prompt"]
+
+
+@pytest.mark.parametrize(
+    "error", [LLMProviderError("timeout"), LLMUnavailableError("off")]
+)
+def test_ai_error_falls_back_to_template(first_item, error):
+    result = explain_recommendation(first_item, "tr", FakeProvider(error=error))
+    assert result.method == "template"
+
+
+@pytest.mark.parametrize("reply", ["", "   ", "x" * (MAX_EXPLANATION_CHARS + 1)])
+def test_invalid_ai_reply_falls_back_to_template(first_item, reply):
+    result = explain_recommendation(first_item, "tr", FakeProvider(reply=reply))
+    assert result.method == "template"
+
+
+def test_explain_recommendations_only_changes_explanation(sample_result):
+    explained = explain_recommendations(sample_result, "en", NoneProvider())
+    for before, after in zip(
+        sample_result.recommendations, explained.recommendations, strict=True
+    ):
+        assert after.explanation == build_template_explanation(before, "en")
+        assert after.model_dump(exclude={"explanation"}) == before.model_dump(
+            exclude={"explanation"}
+        )
+    assert explained.total_matches == sample_result.total_matches
+    # Input is not mutated.
+    assert sample_result.recommendations[0].explanation.startswith("Toyota Corolla")
+
+
+def test_explanation_uses_default_provider_when_ai_off(first_item):
+    assert explain_recommendation(first_item).method == "template"
