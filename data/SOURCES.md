@@ -27,6 +27,11 @@
 | 9 | Opel Mokka 1.2 136 HP MT6 Edition | suv / petrol / manual | 1.990.000 | boş |
 | 10 | Togg T10X V1 RWD Uzun Menzil | suv / electric / automatic | 2.219.668 | 5 (2025) |
 | 11 | BYD Seal 390 kW AWD Excellence | sedan / electric / automatic | 4.077.000 | 5 (2023) |
+| 21 | Dacia Jogger Extreme TCe 110 7 Koltuk | mpv / petrol / manual | 1.550.000 | 1 (2021) |
+| 22 | Skoda Octavia Elite 1.5 TSI mHEV 150 PS DSG | hatchback / hybrid / automatic | 2.780.000 | boş (2019 derecesi sona erdi) |
+| 23 | Peugeot Rifter Allure 1.5 BlueHDi 130hp 6MT | mpv / diesel / manual | 1.690.000 | boş (2019 derecesi sona erdi) |
+| 24 | Renault Duster evolution Turbo TCe EDC 145 hp | suv / petrol / automatic | 2.050.000 | boş (Renault Duster adıyla test yok) |
+| 25 | Honda Jazz e:HEV 1.5L Hibrit Crosstar | hatchback / hybrid / automatic | 2.665.000 | 5 (2020) |
 | 31–35 | Toyota Corolla ×2, Corolla Cross, Renault Clio, Dacia Sandero | — | — | T57 (PR #70) |
 
 ---
@@ -97,6 +102,42 @@
 - **Fiyat:** <https://www.bydauto.com.tr/fiyat-listesi> → "19 Kasım 2026 tarihli liste", 2025 model yılı, tavsiye edilen liste **4.077.000 TL** (kampanyalı 3.772.000 TL, kullanılmadı). Bu yüzden `year` = 2025.
 - **Euro NCAP:** 5 yıldız (2023) — <https://www.euroncap.com/en/results/byd/seal/50012> (test edilen sürüm Design 4x2; derece model ailesi için yayımlandı).
 
+
+### 21 · Dacia Jogger Extreme TCe 110 7 Koltuk (T38)
+
+- **Teknik ve fiyat:** Resmî 7 koltuklu konfigüratör: <https://www.dacia.com.tr/modeller/yeni-jogger-7-koltuklu/configurator-v2.html> → "extreme TCe 110 - 7 koltuklu", aracın fiyatı **1.550.000 TL**, benzin, 6 ileri **manuel**, **110 bg**, WLTP birleşik **6,1 l/100 km**, koltuk sayısı **7**. Kontrol: 2026-11-25.
+- **Bagaj:** Resmî sayfada yayımlanmıyor → boş bırakıldı.
+- **Gövde:** Dacia "5 ila 7 koltuklu aile otomobili" olarak tanıtıyor → sözlüğe göre `mpv`.
+- **Euro NCAP:** 1 yıldız (2021) — <https://www.euroncap.com/assessments/dacia/jogger/0947/>. Derece hâlâ geçerli (6 yıl).
+
+### 22 · Skoda Octavia Elite 1.5 TSI mHEV 150 PS DSG (T38)
+
+- **Fiyat:** <https://www.skoda.com.tr/fiyat-listesi> → "5 Kasım 2026 MY 2026 azami fiyat listesi", Elite 1.5 TSI mHEV 150 PS DSG **2.780.000 TL** (kampanyalı 2.385.600 TL, kullanılmadı).
+- **Teknik:** <https://www.skoda.com.tr/modeller/octavia/yakit-ekonomisi-ve-co2-emisyonu> → 110 kW (**150 PS**), WLTP birleşik **4,9–5,2 l/100 km** (üst değer 5,2 yazıldı), bagaj **600 / 1.555 dm³** (koltuklar yukarıda 600 yazıldı).
+- **Yakıt:** 48V hafif hibrit (mHEV) → sözlüğe göre `hybrid`.
+- **Gövde:** Octavia bir liftback; sözlükte karşılığı olmadığı için `hatchback` yazıldı (M1 onayı bekleniyor). Koltuk sayısı sayfada yazmıyor; 5 varsayıldı.
+- **Euro NCAP:** 5 yıldız (2019); derecenin geçerliliği sona erdiği için boş bırakıldı.
+
+### 23 · Peugeot Rifter Allure 1.5 BlueHDi 130hp 6MT (T38)
+
+- **Fiyat:** <https://kampanya.peugeot.com.tr/fiyat-listesi/> → 2026 MY tavsiye edilen anahtar teslim fiyatı **1.690.000 TL** (30/11/2026'ya kadar geçerli).
+- **Teknik:** <https://www.peugeot.com.tr/peugeot-modelleri/rifter.html> → 1.5 BlueHDi 130hp MT, WLTP birleşik **6–6,1 l/100 km** (üst değer 6,1 yazıldı), **130 hp**, bagaj **775 l**.
+- **Koltuk:** Sayfa iki sıra koltuk anlatıyor, sayıyı yazmıyor; 5 varsayıldı (M1 onayı bekleniyor).
+- **Euro NCAP:** 4 yıldız (2019); derecenin geçerliliği sona erdiği için boş bırakıldı.
+
+
+### 24 · Renault Duster evolution Turbo TCe EDC 145 hp (T38)
+
+- **Teknik:** <https://www.renault.com.tr/hybrid-araclar/yeni-renault-duster/teknik-bilgiler.html> → turbo TCe EDC 145 hp, 106 kW (**145 bg**), benzin, 7 ileri otomatik (EDC), WLTP birleşik **6,3 l/100 km**, bagaj **594 dm³**, koltuk sayısı **5**.
+- **Fiyat:** Resmî konfigüratör <https://www.renault.com.tr/hybrid-araclar/yeni-renault-duster/konfigurator-yeni.html> → "evolution Turbo Tce EDC 145 hp" seçilince aracın fiyatı **2.050.000 TL** (varsayılan Eco-G 120 LPG sürümü kapsam dışı olduğu için kullanılmadı).
+- **Euro NCAP:** Model "Dacia Duster" adıyla test edilmiş; Renault Duster için ayrı derece olmadığından tahmin edilmedi, boş bırakıldı.
+
+### 25 · Honda Jazz e:HEV 1.5L Hibrit Crosstar (T38)
+
+- **Fiyat:** <https://www.honda.com.tr/otomobil/otomobil-fiyat-listesi-2026/honda-jazz-hibrit-2026-fiyat-listesi> → 2026 model yılı, 23.11.2026'dan itibaren geçerli, Crosstar tavsiye edilen satış fiyatı **2.665.000 TL** (vergiler dahil).
+- **Teknik:** <https://www.honda.com.tr/otomobil/modeller/honda-jazz-hibrit/ozellikler> → 1.5L e:HEV, elektrik motoru **122 PS** (tekerlekleri süren güç; sistem gücü olarak yazıldı), WLTP birleşik **4,8 l/100 km**, bagaj **304 l** (VDA, arka koltuklar dik). Teknik sayfa versiyon ayrımı yapmıyor; koltuk sayısı yazmıyor, 5 varsayıldı.
+- **Euro NCAP:** 5 yıldız (2020) — <https://www.euroncap.com/assessments/honda/jazz/0830/>. Derece hâlâ geçerli.
+
 ---
 
 ## Mevcut satırlar (T57 — PR #70 ile eklendi)
@@ -117,3 +158,8 @@
 | VW Polo / Golf / T-Roc | `binekarac.vw.com.tr` fiyat tablosu dinamik yükleniyor. |
 | BYD Atto 3 | 19 Kasım 2026 tarihli BYD fiyat listesinde yer almıyor. |
 | Hyundai Tucson Hibrit | Hyundai Kasım 2026 fiyat listesinde fiyatı yok. |
+| Skoda Octavia Combi | Fiyat listesinde var, ancak `skoda.com.tr` Combi'nin tüketim ve bagaj değerlerini ayrı yayımlamıyor (T38). |
+| Opel Astra Sports Tourer, Peugeot 308 SW | 2026 Türkiye fiyat listelerinde yer almıyor (T38). |
+| Renault Taliant | Renault binek araç fiyat listesinde yer almıyor (T38). |
+| Tesla Model Y | `tesla.com/tr_TR` versiyon fiyatlarını vergiler hariç veriyor; vergiler dahil tutar yalnızca seçili konfigürasyonun tahmini fiyatı (T38). |
+| Honda Civic e:HEV | 23.11.2026 tarihli Honda 2026 fiyat listesinde yer almıyor (T38). |
