@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app import __version__
+from app.compare.router import router as compare_router
 from app.config import STATIC_DIR, get_settings
 from app.engine.router import router as engine_router
 from app.preferences.router import router as preferences_router
@@ -53,7 +54,7 @@ def create_app() -> FastAPI:
     # application.include_router(catalog_router)       # M1  T05  /api/vehicles
     application.include_router(preferences_router)     # M2  T12  /api/preferences
     application.include_router(engine_router)          # M3  T25  /api/recommendations
-    # application.include_router(compare_router)       # M5  T42  /api/compare
+    application.include_router(compare_router)         # M5  T42  /api/compare
     # application.include_router(scenarios_router)     # M6  T50  /api/scenarios
 
     # The static frontend is mounted LAST, because "/" matches every path and
