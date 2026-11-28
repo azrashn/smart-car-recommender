@@ -12,6 +12,7 @@ from typing import Union
 
 from fastapi import APIRouter
 
+from app.ai.explanation import explain_recommendations
 from app.engine.service import generate_recommendations
 from app.schemas.preference import Preference
 from app.schemas.recommendation import ConflictReport, RecommendationResult
@@ -32,4 +33,9 @@ def post_recommendations(
     Sert filtreleri geçen araçları tam katalog sınırlarına göre puanlayarak ilk 5'i döner.
     Hiç araç bulunamazsa nedenlerini ve esnetme önerilerini içeren ConflictReport döner.
     """
-    return generate_recommendations(preference)
+    result = generate_recommendations(preference)
+    if isinstance(result, RecommendationResult):
+        # M4 (T33) fills only ``explanation``: AI when enabled, otherwise its
+        # TR/EN template. Rank, scores and all other fields stay unchanged.
+        return explain_recommendations(result, preference.language)
+    return result
