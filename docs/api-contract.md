@@ -372,6 +372,39 @@ and listed in `missing_fields`.
 > 3. If `budget_max_try` (or any other required field) is in `missing_fields`, the frontend asks the user to fill it in.
 > 4. Once `budget_max_try` is supplied, the draft is converted to a complete `Preference` and submitted to `POST /api/recommendations`.
 
+### Rule-based parser — supported phrases (`method: "rule"`)
+
+The fallback parser is deterministic and works on Turkish and English text
+(case, diacritics and apostrophes are ignored). Anything it cannot read stays empty.
+
+| Field | Examples |
+|---|---|
+| `budget_min_try` / `budget_max_try` | `1,5 milyona kadar`, `en fazla 800 bin`, `1-1,5 milyon arası`, `en az 900 bin`, `under 2 million`, `up to 900k`, `between 1 and 1.5 million` |
+| `transmission` | `otomatik`, `manuel`, `düz vites`, `automatic`; `manuel olmasın` → automatic; both / `vites fark etmez` → none |
+| `fuel_types` | `benzinli`, `dizel`, `hibrit`, `elektrikli`, `petrol`, `diesel`, `hybrid`, `EV` (English text only); `dizel olmasın` removes it |
+| `body_types` | `SUV`, `sedan`, `hatchback`/`hb`, `station wagon`/`estate`, `mpv`/`minivan` |
+| `usage_type` | `şehir içi` → city, `uzun yol`/`şehir dışı` → highway, `karışık` → mixed, `aile`/`family` → family (wins over others) |
+| `min_seats` | `7 kişilik`, `7 koltuk`, `7-seater`, `yedi kişilik` (2–9) |
+| `annual_km` | `yılda 20 bin km`, `20.000 km/yıl`, `15k km a year` |
+| `priorities` | see below |
+
+**Priorities.** A mentioned criterion becomes `high`; unmentioned ones stay `medium`.
+If it is followed by an indifference phrase (`önemli değil`, `umurumda değil`, `fark etmez`,
+`don't care about …`, `doesn't matter`, `not important`) in the same clause, it becomes `low`.
+When a criterion is mentioned more than once, the last mention wins.
+
+| Criterion | Raises to `high` |
+|---|---|
+| `fuel_economy` | `az yakan`, `yakıt tasarrufu`, `ekonomik`, `fuel efficient` |
+| `interior_space` | `geniş`, `ferah`, `bagaj`, `spacious` |
+| `performance` | `güçlü`, `hızlı`, `performans`, `powerful` |
+| `safety` | `güvenli`, `güvenlik`, `safe` |
+| `budget_fit` | `ucuz`, `uygun fiyatlı`, `bütçe dostu`, `affordable` |
+
+> [!NOTE]
+> `ekonomik` is ambiguous (fuel or price); the parser reads it as `fuel_economy`.
+> `ucuz` / `cheap` only sets the `budget_fit` priority and never produces a budget amount.
+
 ### Response `422 Unprocessable Entity`
 
 FastAPI default format (see §2):

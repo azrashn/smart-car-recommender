@@ -25,6 +25,8 @@ from app.schemas.preference import (
     BodyType,
     FuelType,
     PreferenceDraft,
+    Priority,
+    ScoringPriorities,
     TextExtractionResult,
     UsageType,
 )
@@ -580,6 +582,77 @@ def parse_annual_km(norm: str) -> int | None:
 
 
 # ---------------------------------------------------------------------------
+# Priorities
+# ---------------------------------------------------------------------------
+#
+# Each criterion has a list of cue words. A mention makes the criterion "high"; a
+# mention followed (or preceded) by an "indifference" cue ("onemli degil", "don't
+# care about") makes it "low". Criteria that are not mentioned stay "medium". When a
+# criterion is mentioned several times, the LAST mention wins ("guclu olsun ama
+# performans onemli degil" -> low).
+#
+# Decisions
+# - "ekonomik" / "economical" is ambiguous (fuel or price). It is read as
+#   fuel_economy only; price intent needs "ucuz", "uygun fiyatli", "butce dostu"...
+# - "ucuz" / "cheap" only raises budget_fit; it never produces a budget number.
+# - Indifference only counts inside the same clause (split at "," "." "ama" "but"),
+#   so "otomatik olsun, bagaj onemli degil" does not leak across the comma.
+
+_PRIORITY_TERMS: dict[str, re.Pattern[str]] = {
+    "fuel_economy": re.compile(
+        r"\b(?:az\s+yak\w*|yakit\s+tasarruf\w*|tasarruflu\w*|dusuk\s+tuketim\w*"
+        r"|ekonomik\w*|fuel[\s-]+efficien\w*|fuel\s+econom\w*|economical\b"
+        r"|low\s+consumption|good\s+mileage|low\s+fuel\s+consumption)"
+    ),
+    "interior_space": re.compile(
+        r"\b(?:genis\w*|ferah\w*|bagaj\w*|spacious\w*|roomy\b|luggage\b|trunk\b"
+        r"|boot\s+space|cargo\b|legroom\b|interior\s+space)"
+    ),
+    "performance": re.compile(
+        r"\b(?:guclu\w*|hizli\w*|hiz\b|performans\w*|powerful\b|performance\b|fast\b)"
+    ),
+    "safety": re.compile(r"\b(?:guvenli\w*|guvenlik\w*|safe(?:ty|r|st)?\b)"),
+    "budget_fit": re.compile(
+        r"\b(?:ucuz\w*|uygun\s+fiyat\w*|butce\s+dostu|budget[\s-]+friendly|affordabl\w*"
+        r"|cheap\w*|inexpensive\b|low\s+price)"
+    ),
+}
+
+_CLAUSE_SPLIT_RE = re.compile(r"\s*(?:(?<!\d)[.,]|[.,](?!\d)|\b(?:ama|fakat|but|however)\b)\s*")
+_INDIFFERENT_CORE = (
+    r"(?:onemli\s+degil|onemsiz|umurumda\s+degil|umursam\w*|fark\s*etmez|farki\s+yok"
+    r"|(?:gerek|sart)\s+(?:yok|degil)|not\s+important|unimportant|irrelevant"
+    r"|doesn\s+t\s+matter|does\s+not\s+matter|not\s+a\s+priority|no\s+priority)"
+)
+# After the term: optional "ve guvenli"-style list items, optional intensifier / "is".
+_INDIFFERENT_AFTER_RE = re.compile(
+    r"^(?:\s+(?:space|room|capacity|alani|hacmi|hacim|kapasitesi))?"
+    r"(?:\s+(?:ve|veya|and|or)\s+\w+)*"
+    r"(?:\s+(?:is|are|cok|pek|o\s+kadar|that|very|so|really))*"
+    rf"\s+{_INDIFFERENT_CORE}"
+)
+_INDIFFERENT_BEFORE_RE = re.compile(
+    r"\b(?:don\s+t\s+care|dont\s+care|do\s+not\s+care|no\s+need\s+for"
+    r"|not\s+(?:very\s+|that\s+)?(?:worried|concerned))\s+(?:about\s+|for\s+|with\s+)?"
+    r"(?:(?:the|a|an|any|good|great)\s+)?(?:\w+\s+(?:and|or)\s+)*$"
+)
+
+
+def parse_priorities(norm: str) -> ScoringPriorities:
+    """Return importance levels read from ``norm``; unmentioned ones stay medium."""
+    levels: dict[str, Priority] = {}
+    for clause in _CLAUSE_SPLIT_RE.split(norm):
+        for name, pattern in _PRIORITY_TERMS.items():
+            for m in pattern.finditer(clause):
+                low = bool(
+                    _INDIFFERENT_AFTER_RE.match(clause[m.end() :])
+                    or _INDIFFERENT_BEFORE_RE.search(clause[: m.start()])
+                )
+                levels[name] = Priority.low if low else Priority.high
+    return ScoringPriorities(**levels)
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -600,6 +673,7 @@ def _build_draft(text: str) -> PreferenceDraft:
         "usage_type": parse_usage_type(norm),
         "min_seats": parse_min_seats(norm),
         "annual_km": parse_annual_km(norm),
+        "priorities": parse_priorities(norm),
     }
     return PreferenceDraft(**fields)
 
