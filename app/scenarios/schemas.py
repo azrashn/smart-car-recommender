@@ -81,6 +81,7 @@ class ScenarioResult(BaseModel):
     weights_used: Dict[str, int] = Field(default_factory=dict)
     annual_km_used: int
     fuel_price_try_used: float
+    diesel_price_try_used: float
     electricity_price_try_used: float
 
 

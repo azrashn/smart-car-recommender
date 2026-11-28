@@ -108,5 +108,6 @@ def run_scenario(
         weights_used=scenario.weights_used,
         annual_km_used=annual_km,
         fuel_price_try_used=round(prices.petrol_per_l, 2),
+        diesel_price_try_used=round(prices.diesel_per_l, 2),
         electricity_price_try_used=prices.electricity_per_kwh,
     )
