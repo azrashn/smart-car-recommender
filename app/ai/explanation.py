@@ -118,10 +118,10 @@ def recommendation_facts(item: RecommendationItem) -> dict:
     }
 
 
-def _clean_ai_text(raw: str) -> str | None:
+def _clean_ai_text(raw: str, max_chars: int = MAX_EXPLANATION_CHARS) -> str | None:
     """Basic output checks; stricter hallucination checks come in T35."""
     text = " ".join(raw.split())
-    if not text or len(text) > MAX_EXPLANATION_CHARS:
+    if not text or len(text) > max_chars:
         return None
     return text
 
@@ -133,23 +133,35 @@ def explain_recommendation(
 ) -> Explanation:
     """Explain one recommendation; falls back to the template on any AI issue."""
     lang = normalize_language(language)
-    provider = provider or get_provider()
+    return generate_or_fallback(
+        provider or get_provider(),
+        prompt=build_recommendation_prompt(recommendation_facts(item), lang),
+        system_instruction=SYSTEM_INSTRUCTION,
+        fallback_text=build_template_explanation(item, lang),
+    )
 
+
+def generate_or_fallback(
+    provider: LLMProvider,
+    *,
+    prompt: str,
+    system_instruction: str,
+    fallback_text: str,
+    max_chars: int = MAX_EXPLANATION_CHARS,
+) -> Explanation:
+    """Ask the provider for text; return ``fallback_text`` on any AI issue."""
     if provider.is_available:
         try:
-            raw = provider.generate(
-                build_recommendation_prompt(recommendation_facts(item), lang),
-                system_instruction=SYSTEM_INSTRUCTION,
-            )
+            raw = provider.generate(prompt, system_instruction=system_instruction)
         except LLMError as exc:
             logger.info("AI explanation unavailable, using template: %s", exc)
         else:
-            text = _clean_ai_text(raw)
+            text = _clean_ai_text(raw, max_chars)
             if text is not None:
                 return Explanation(text=text, method="ai")
             logger.info("AI explanation rejected by validation, using template.")
 
-    return Explanation(text=build_template_explanation(item, lang), method="template")
+    return Explanation(text=fallback_text, method="template")
 
 
 def explain_recommendations(

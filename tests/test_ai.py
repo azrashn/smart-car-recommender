@@ -1,4 +1,4 @@
-"""Tests for the M4 AI layer (T30, T33). No real Gemini requests are made."""
+"""Tests for the M4 AI layer (T30, T33, T34). No real Gemini requests are made."""
 
 from __future__ import annotations
 
@@ -17,6 +17,13 @@ from app.ai import (
     load_ai_settings,
     reset_provider,
 )
+from app.ai.conflict import (
+    MAX_SUGGESTIONS_IN_TEXT,
+    build_conflict_template,
+    conflict_facts,
+    explain_conflict,
+    explain_conflict_report,
+)
 from app.ai.explanation import (
     MAX_EXPLANATION_CHARS,
     build_template_explanation,
@@ -26,7 +33,7 @@ from app.ai.explanation import (
     recommendation_facts,
 )
 from app.ai.gemini import GeminiProvider
-from app.schemas.recommendation import RecommendationResult
+from app.schemas.recommendation import ConflictReport, RecommendationResult
 
 AI_ENV_VARS = ("AI_PROVIDER", "GEMINI_API_KEY", "GEMINI_MODEL", "AI_TIMEOUT_SECONDS")
 
@@ -350,3 +357,112 @@ def test_explain_recommendations_only_changes_explanation(sample_result):
 
 def test_explanation_uses_default_provider_when_ai_off(first_item):
     assert explain_recommendation(first_item).method == "template"
+
+
+# --- T34: conflict explanation -----------------------------------------------
+
+
+@pytest.fixture
+def conflict_report():
+    data = json.loads((FIXTURES / "sample_results.json").read_text(encoding="utf-8"))
+    return ConflictReport.model_validate(data["conflict_example"])
+
+
+def test_conflict_template_tr_uses_report_values(conflict_report):
+    text = build_conflict_template(conflict_report, "tr")
+    assert text.startswith("Seçtiğiniz kriterlerin tamamına uyan araç bulunamadı.")
+    assert "bütçe üst sınırı, kasa tipi ve yakıt türü" in text
+    assert (
+        "Bütçe üst sınırı 1.500.000 TL yerine 1.790.000 TL olursa "
+        "1 araç daha uygun hale gelir." in text
+    )
+    assert "Yakıt türü elektrikli yerine benzinli olursa" in text
+
+
+def test_conflict_template_en(conflict_report):
+    text = build_conflict_template(conflict_report, "en")
+    assert text.startswith("No vehicle matches all of your criteria.")
+    assert "maximum budget, body type and fuel type" in text
+    assert (
+        "Changing maximum budget from 1,500,000 TL to 1,790,000 TL "
+        "would unlock 1 more vehicle." in text
+    )
+    assert "from electric to petrol" in text
+
+
+def test_conflict_counts_come_only_from_report(conflict_report):
+    suggestion = conflict_report.suggestions[0].model_copy(
+        update={"additional_matches_unlocked": 7}
+    )
+    report = conflict_report.model_copy(update={"suggestions": [suggestion]})
+    assert "7 more vehicles" in build_conflict_template(report, "en")
+    assert "7 araç daha" in build_conflict_template(report, "tr")
+
+
+def test_conflict_template_without_suggestions(conflict_report):
+    report = conflict_report.model_copy(update={"suggestions": []})
+    tr = build_conflict_template(report, "tr")
+    assert "esnetmeyi deneyebilirsiniz" in tr
+    assert "olursa" not in tr
+    assert "Try relaxing one of your criteria." in build_conflict_template(report, "en")
+
+
+def test_conflict_template_limits_suggestions(conflict_report):
+    many = [conflict_report.suggestions[0]] * (MAX_SUGGESTIONS_IN_TEXT + 2)
+    report = conflict_report.model_copy(update={"suggestions": many})
+    assert build_conflict_template(report, "tr").count("olursa") == (
+        MAX_SUGGESTIONS_IN_TEXT
+    )
+    assert len(conflict_facts(report)["suggestions"]) == MAX_SUGGESTIONS_IN_TEXT
+
+
+def test_conflict_template_handles_unknown_constraint_and_lists(conflict_report):
+    suggestion = conflict_report.suggestions[0].model_copy(
+        update={
+            "constraint": "colour",
+            "current_value": ["suv", "sedan"],
+            "suggested_value": "any",
+        }
+    )
+    report = conflict_report.model_copy(
+        update={"conflicting_constraints": ["colour"], "suggestions": [suggestion]}
+    )
+    text = build_conflict_template(report, "en")
+    assert "The blocking criteria are: colour." in text
+    assert "from SUV, sedan to any" in text
+
+
+def test_conflict_facts_exclude_free_text(conflict_report):
+    facts = conflict_facts(conflict_report)
+    assert facts["conflicting_constraints"] == ["budget_max", "body_type", "fuel_type"]
+    assert all("message" not in s for s in facts["suggestions"])
+    assert "explanation" not in facts
+
+
+def test_conflict_none_provider_uses_template(conflict_report):
+    result = explain_conflict(conflict_report, "en", NoneProvider())
+    assert result.method == "template"
+    assert result.text == build_conflict_template(conflict_report, "en")
+
+
+def test_conflict_ai_used_when_available(conflict_report):
+    provider = FakeProvider(reply="Budget and fuel type conflict.")
+    result = explain_conflict(conflict_report, "en", provider)
+    assert result.method == "ai"
+    assert result.text == "Budget and fuel type conflict."
+    assert '"additional_matches_unlocked": 1' in provider.prompts[0]["prompt"]
+    assert "Do not invent" in provider.prompts[0]["system"]
+
+
+def test_conflict_ai_error_falls_back(conflict_report):
+    provider = FakeProvider(error=LLMProviderError("timeout"))
+    assert explain_conflict(conflict_report, "tr", provider).method == "template"
+
+
+def test_explain_conflict_report_only_changes_explanation(conflict_report):
+    explained = explain_conflict_report(conflict_report, "tr", NoneProvider())
+    assert explained.explanation == build_conflict_template(conflict_report, "tr")
+    assert explained.model_dump(exclude={"explanation"}) == (
+        conflict_report.model_dump(exclude={"explanation"})
+    )
+    assert conflict_report.explanation.startswith("Piyasa koşullarında")
