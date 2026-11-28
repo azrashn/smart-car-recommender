@@ -48,5 +48,14 @@
   .before-after { grid-template-columns: 1fr; }
 }
 
+/* Annual cost bar chart (plain DOM, no library). */
+.cost-chart { display: grid; gap: var(--space-2); }
+.cost-row { display: grid; grid-template-columns: minmax(8rem, 14rem) 1fr minmax(6rem, 8rem); gap: var(--space-2); align-items: center; font-size: var(--font-size-sm); }
+.cost-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cost-track { background: var(--color-hover-bg); border-radius: var(--radius-md); height: 1rem; overflow: hidden; }
+.cost-bar { height: 100%; background: var(--color-primary); border-radius: var(--radius-md); transition: width 0.15s ease; }
+.cost-value { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 700px) { .cost-row { grid-template-columns: 1fr; gap: 0.15rem; } .cost-value { text-align: left; } }
+
 /* `display` rules above must not override the HTML `hidden` attribute. */
 [hidden] { display: none !important; }

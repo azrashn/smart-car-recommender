@@ -33,17 +33,17 @@
 
         <div class="slider-row">
           <label class="form-label" for="annualKm" data-i18n="scenario.annual_km">Yıllık km</label>
-          <input type="range" id="annualKm" min="1000" max="60000" step="1000" value="15000">
+          <input type="range" id="annualKm" min="1000" max="200000" step="100">
           <output id="annualKmOut" for="annualKm"></output>
         </div>
         <div class="slider-row">
           <label class="form-label" for="fuelPrice" data-i18n="scenario.fuel_price">Benzin fiyatı (TL/L)</label>
-          <input type="range" id="fuelPrice" min="40" max="120" step="0.1" value="71.2">
+          <input type="range" id="fuelPrice" min="40" max="150" step="0.1">
           <output id="fuelPriceOut" for="fuelPrice"></output>
         </div>
         <div class="slider-row">
           <label class="form-label" for="electricityPrice" data-i18n="scenario.electricity_price">Elektrik fiyatı (TL/kWh)</label>
-          <input type="range" id="electricityPrice" min="3" max="20" step="0.1" value="8.5">
+          <input type="range" id="electricityPrice" min="1" max="40" step="0.1">
           <output id="electricityPriceOut" for="electricityPrice"></output>
         </div>
         <p class="form-hint" data-i18n="scenario.price_hint">Fiyatlar örnek değerlerdir. Yıl km ve fiyatlar yalnızca yıllık maliyet tahminini değiştirir; sıralama öncelik ağırlıklarından etkilenir.</p>
@@ -57,6 +57,10 @@
       <section class="scenario-results" aria-labelledby="resultsTitle" aria-live="polite" aria-busy="false" id="resultsRegion">
         <h2 class="card-title" id="resultsTitle" data-i18n="scenario.ranking">Sıralama: önce / sonra</h2>
         <p id="status" class="form-hint" role="status"></p>
+        <div class="card" id="costChartCard">
+          <h3 class="card-subtitle" data-i18n="scenario.cost_chart">Yıllık maliyet tahmini (TL)</h3>
+          <div id="costChart" class="cost-chart" role="img" aria-label="Yıllık maliyet çubuk grafiği"></div>
+        </div>
         <div class="before-after">
           <div class="card" id="beforeCard">
             <h3 class="card-subtitle" data-i18n="scenario.before">ÖNCE</h3>

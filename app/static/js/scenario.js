@@ -1,11 +1,15 @@
-/* Scenario Lab (T51): sliders -> POST /api/scenarios (debounced) -> before/after ranking.
- * All API data is written with textContent (never innerHTML). */
+/* Scenario Lab (T51): sliders -> POST /api/scenarios (debounced) -> before/after ranking + cost chart.
+ *
+ * - Defaults for km and prices come from the API (a call with empty overrides), so the
+ *   numbers live in one place (app/scenarios/service.py).
+ * - Only controls the user actually moved are sent as overrides; the survey's own values
+ *   are never silently rounded or replaced.
+ * - All API data is written with textContent (never innerHTML). */
 (function () {
   "use strict";
 
   const STORAGE_KEY_PREFERENCE = "automatch.preference";
-  const DEBOUNCE_MS = 300;
-  const DEFAULTS = { annual_km: 15000, fuel_price_try: 71.2, electricity_price_try: 8.5 };
+  const DEBOUNCE_MS = 150; // keeps "slider change -> updated list" under the 300 ms criterion
   const WEIGHT = { low: 1, medium: 2, high: 3 };
   const LEVEL = { 1: "low", 2: "medium", 3: "high" };
   const LEVEL_TR = { 1: "Düşük", 2: "Orta", 3: "Yüksek" };
@@ -23,6 +27,8 @@
 
   let preference = null;
   let baseWeights = {};
+  let base = null; // { annual_km, fuel_price_try, electricity_price_try } as returned by the API
+  let touched = { annual_km: false, fuel_price_try: false, electricity_price_try: false, priorities: new Set() };
   let timer = null;
   let controller = null;
   let requestSeq = 0;
@@ -74,7 +80,10 @@
       input.step = "1";
       input.dataset.key = key;
       input.value = String(baseWeights[key]);
-      input.addEventListener("input", onChange);
+      input.addEventListener("input", function () {
+        touched.priorities.add(key);
+        onChange();
+      });
 
       const out = document.createElement("output");
       out.id = "prio_out_" + key;
@@ -91,37 +100,49 @@
     return w;
   }
 
+  // Shown value: the survey's exact value until the user moves the slider.
+  function shownKm() { return touched.annual_km ? Number($("annualKm").value) : base.annual_km; }
+
+  function setOutput(id, text) {
+    $(id).textContent = text;
+    const input = $(id.replace(/Out$/, ""));
+    if (input) input.setAttribute("aria-valuetext", text);
+  }
+
   function updateOutputs() {
-    $("annualKmOut").textContent = money.format(Number($("annualKm").value)) + " km";
-    $("fuelPriceOut").textContent = nf.format(Number($("fuelPrice").value)) + " TL/L";
-    $("electricityPriceOut").textContent = nf.format(Number($("electricityPrice").value)) + " TL/kWh";
+    setOutput("annualKmOut", money.format(shownKm()) + " km");
+    setOutput("fuelPriceOut", nf.format(touched.fuel_price_try ? Number($("fuelPrice").value) : base.fuel_price_try) + " TL/L");
+    setOutput("electricityPriceOut", nf.format(touched.electricity_price_try ? Number($("electricityPrice").value) : base.electricity_price_try) + " TL/kWh");
     const w = currentWeights();
     const total = Object.values(w).reduce((a, b) => a + b, 0);
     CRITERIA.forEach(([key]) => {
       const pct = total ? (w[key] / total) * 100 : 0;
-      $("prio_out_" + key).textContent = LEVEL_TR[w[key]] + " (" + w[key] + ") · %" + nf.format(pct);
+      const text = LEVEL_TR[w[key]] + " (" + w[key] + ") · %" + nf.format(pct);
+      $("prio_out_" + key).textContent = text;
+      $("prio_" + key).setAttribute("aria-valuetext", text);
     });
   }
 
-  function setDefaults() {
-    $("annualKm").value = String(preference.annual_km || DEFAULTS.annual_km);
-    $("fuelPrice").value = String(DEFAULTS.fuel_price_try);
-    $("electricityPrice").value = String(DEFAULTS.electricity_price_try);
+  function resetControls() {
+    touched = { annual_km: false, fuel_price_try: false, electricity_price_try: false, priorities: new Set() };
+    $("annualKm").value = String(base.annual_km);
+    $("fuelPrice").value = String(base.fuel_price_try);
+    $("electricityPrice").value = String(base.electricity_price_try);
     CRITERIA.forEach(([key]) => { $("prio_" + key).value = String(baseWeights[key]); });
     updateOutputs();
   }
 
   // ---- API ----------------------------------------------------------------
   function buildOverrides() {
-    const priorities = {};
-    const w = currentWeights();
-    CRITERIA.forEach(([key]) => { priorities[key] = LEVEL[w[key]]; });
-    return {
-      annual_km: Number($("annualKm").value),
-      fuel_price_try: Number($("fuelPrice").value),
-      electricity_price_try: Number($("electricityPrice").value),
-      priorities: priorities,
-    };
+    const o = {};
+    if (touched.annual_km) o.annual_km = Number($("annualKm").value);
+    if (touched.fuel_price_try) o.fuel_price_try = Number($("fuelPrice").value);
+    if (touched.electricity_price_try) o.electricity_price_try = Number($("electricityPrice").value);
+    if (touched.priorities.size) {
+      o.priorities = {};
+      touched.priorities.forEach((key) => { o.priorities[key] = LEVEL[Number($("prio_" + key).value)]; });
+    }
+    return o;
   }
 
   async function postJson(url, body, signal) {
@@ -197,10 +218,47 @@
     });
   }
 
+  function renderChart(items) {
+    const host = $("costChart");
+    host.textContent = "";
+    const costs = (items || []).map((i) => (typeof i.estimated_annual_cost_try === "number" ? i.estimated_annual_cost_try : 0));
+    const max = Math.max.apply(null, costs.concat([1]));
+    (items || []).forEach((item, idx) => {
+      const row = document.createElement("div");
+      row.className = "cost-row";
+      const name = document.createElement("span");
+      name.className = "cost-name";
+      name.textContent = item.rank + ". " + item.brand + " " + item.model;
+      const track = document.createElement("div");
+      track.className = "cost-track";
+      const bar = document.createElement("div");
+      bar.className = "cost-bar";
+      bar.style.width = (costs[idx] / max) * 100 + "%";
+      track.appendChild(bar);
+      const value = document.createElement("span");
+      value.className = "cost-value";
+      value.textContent = costs[idx] ? money.format(costs[idx]) + " TL" : "tüketim verisi yok";
+      row.append(name, track, value);
+      host.appendChild(row);
+    });
+    $("costChartCard").hidden = !(items && items.length);
+  }
+
   function renderConflict(report) {
     renderList($("afterList"), [], false);
+    renderChart([]);
     const msgs = (report.suggestions || []).map((s) => s.message).filter(Boolean);
     showAlert([report.reason].concat(msgs).filter(Boolean).join(" "), "warning");
+  }
+
+  function renderAfter(data) {
+    hideAlert();
+    if (data.status === "conflict") {
+      renderConflict(data);
+    } else {
+      renderList($("afterList"), data.recommendations, true);
+      renderChart(data.recommendations);
+    }
   }
 
   // ---- Flow ---------------------------------------------------------------
@@ -211,21 +269,12 @@
     $("resultsRegion").setAttribute("aria-busy", "true");
     $("status").textContent = "Hesaplanıyor…";
     try {
-      const data = await postJson(
-        "/api/scenarios",
-        { preference: preference, overrides: buildOverrides() },
-        controller.signal
-      );
+      const data = await postJson("/api/scenarios", { preference: preference, overrides: buildOverrides() }, controller.signal);
       if (seq !== requestSeq) return; // a newer request superseded this one
-      hideAlert();
-      if (data.status === "conflict") {
-        renderConflict(data);
-      } else {
-        renderList($("afterList"), data.recommendations, true);
-      }
+      renderAfter(data);
       $("status").textContent = "";
     } catch (err) {
-      if (err.name === "AbortError") return;
+      if (err.name === "AbortError" || seq !== requestSeq) return;
       $("status").textContent = "";
       if (err.status === 422) {
         showAlert("Tercihleriniz doğrulanamadı. Lütfen anketi yeniden doldurun.", "danger");
@@ -243,18 +292,7 @@
     timer = setTimeout(runScenario, DEBOUNCE_MS);
   }
 
-  async function loadBefore() {
-    try {
-      const data = await postJson("/api/recommendations", preference);
-      if (data.status === "success") {
-        renderList($("beforeList"), data.recommendations, false);
-        return;
-      }
-    } catch (e) { /* fall through */ }
-    $("beforeCard").hidden = true; // "after" still works without the baseline column
-  }
-
-  function init() {
+  async function init() {
     preference = readPreference();
     if (!preference) {
       showAlert("Önce anket yapın. Anket sayfasına yönlendiriliyorsunuz…", "warning");
@@ -262,17 +300,46 @@
       return;
     }
     baseWeights = weightsOf(preference);
+
+    // One call with empty overrides gives the "before" list AND the default km/prices.
+    let first;
+    try {
+      first = await postJson("/api/scenarios", { preference: preference, overrides: {} });
+    } catch (err) {
+      showAlert(
+        err.status === 422
+          ? "Tercihleriniz doğrulanamadı. Lütfen anketi yeniden doldurun."
+          : "Senaryo servisine ulaşılamadı (" + err.message + "). Daha sonra tekrar deneyin.",
+        "danger"
+      );
+      return;
+    }
+
+    if (first.status === "conflict") {
+      // No vehicle matches the survey answers, so there is nothing to re-rank.
+      // Defaults are not available in this response; show the reasons and stop.
+      renderConflict(first);
+      return;
+    }
+    base = {
+      annual_km: first.annual_km_used,
+      fuel_price_try: first.fuel_price_try_used,
+      electricity_price_try: first.electricity_price_try_used,
+    };
+    renderList($("beforeList"), first.recommendations, false);
+
     buildPrioritySliders();
-    ["annualKm", "fuelPrice", "electricityPrice"].forEach((id) => $(id).addEventListener("input", onChange));
+    $("annualKm").addEventListener("input", function () { touched.annual_km = true; onChange(); });
+    $("fuelPrice").addEventListener("input", function () { touched.fuel_price_try = true; onChange(); });
+    $("electricityPrice").addEventListener("input", function () { touched.electricity_price_try = true; onChange(); });
     $("btnReset").addEventListener("click", function () {
-      setDefaults();
+      resetControls();
       clearTimeout(timer);
       runScenario();
     });
     $("scenarioApp").hidden = false;
-    setDefaults();
-    loadBefore();
-    runScenario();
+    resetControls();
+    renderAfter(first);
   }
 
   document.addEventListener("DOMContentLoaded", init);
